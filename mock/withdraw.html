@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>먹을지도 · 회원 탈퇴 화면 목업 (반응형)</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#FF6000', ink: '#222222', muted: '#A3A3A3', muted2: '#737373',
+          hairline: '#E5E5E5', promo: '#FCF4EE', navborder: '#D4D4D4',
+        },
+        fontFamily: { sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'] },
+        boxShadow: { floating: '0 4px 16px rgba(34, 34, 34, 0.12)' },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+  .reason-chip[aria-pressed="true"] { background-color: #222222; color: #fff; border-color: #222222; }
+</style>
+</head>
+<!-- 단일 목적 폼 화면: 데스크톱에서는 중앙 정렬된 카드로만 확장 -->
+<body class="bg-white lg:bg-neutral-50 lg:flex lg:items-start lg:justify-center lg:py-12">
+<div class="relative min-h-screen w-full lg:min-h-0 lg:w-full lg:max-w-xl bg-white lg:rounded-2xl lg:border lg:border-hairline lg:shadow-floating overflow-hidden flex flex-col">
+
+  <!-- ============ 헤더 ============ -->
+  <header class="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-hairline">
+    <a href="mypage.html" aria-label="뒤로가기" class="w-8 h-8 flex items-center justify-center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1 class="text-[16px] font-bold text-ink">회원 탈퇴</h1>
+    <div class="w-8"></div>
+  </header>
+
+  <form id="withdraw-form" class="flex-1 overflow-y-auto pb-28 lg:flex-none lg:overflow-visible lg:pb-6">
+    <div class="px-5 py-5 flex flex-col gap-5">
+
+      <div class="flex flex-col items-center text-center pt-2 pb-1">
+        <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        </div>
+        <p class="text-[18px] font-bold text-ink mt-3">정말 떠나시나요?</p>
+        <p class="text-[13px] text-muted2 mt-1">탈퇴 전 아래 내용을 꼭 확인해주세요</p>
+      </div>
+
+      <!-- 유의사항 -->
+      <div class="rounded-2xl bg-neutral-100 px-4 py-3.5">
+        <ul class="flex flex-col gap-2 text-[13px] text-ink leading-relaxed">
+          <li class="flex gap-2"><span class="text-muted2">·</span>작성한 리뷰와 즐겨찾기는 더 이상 마이페이지에서 보이지 않아요</li>
+          <li class="flex gap-2"><span class="text-muted2">·</span>등록한 식당 정보는 다른 사용자를 위해 서비스에 계속 남아요</li>
+          <li class="flex gap-2"><span class="text-muted2">·</span>탈퇴 후 30일간 동일한 이메일로 재가입이 제한돼요</li>
+          <li class="flex gap-2"><span class="text-muted2">·</span>법령에 따라 일부 기록은 일정 기간 보관 후 파기돼요</li>
+        </ul>
+      </div>
+
+      <!-- 탈퇴 사유 -->
+      <div>
+        <label class="text-[13px] font-bold text-ink">탈퇴하시는 이유를 알려주세요</label>
+        <div class="mt-2 flex flex-col gap-2" id="reason-group">
+          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">서비스를 잘 사용하지 않아요</button>
+          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">불편한 점이 있었어요</button>
+          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">개인정보가 걱정돼요</button>
+          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">기타</button>
+        </div>
+      </div>
+
+      <!-- 비밀번호 확인 -->
+      <div>
+        <label class="text-[13px] font-bold text-ink">본인 확인을 위해 비밀번호를 입력해주세요</label>
+        <input id="withdraw-password" type="password" placeholder="비밀번호" class="mt-1.5 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
+      </div>
+
+      <!-- 동의 -->
+      <label class="flex items-center gap-2.5 rounded-2xl border border-hairline p-3.5">
+        <input type="checkbox" id="withdraw-agree" class="w-5 h-5 rounded accent-red-500 shrink-0" />
+        <span class="text-[13px] font-semibold text-ink">위 내용을 모두 확인했으며 탈퇴에 동의합니다</span>
+      </label>
+    </div>
+  </form>
+
+  <!-- ============ 탈퇴 버튼: 모바일은 하단 고정, 데스크톱은 카드 내부 정적 배치 ============ -->
+  <div class="absolute bottom-0 inset-x-0 lg:static lg:inset-auto bg-white border-t border-hairline px-4 py-3">
+    <p id="withdraw-hint" class="hidden text-[12px] font-semibold text-red-500 mb-2">비밀번호를 입력하고 안내 사항에 동의해주세요</p>
+    <button type="button" id="withdraw-submit" disabled onclick="window.location.href='login.html'" class="w-full rounded-xl bg-navborder text-white text-[15px] font-bold py-3.5 transition-colors">
+      탈퇴하기
+    </button>
+  </div>
+</div>
+
+<script>
+  // ---------- 탈퇴 사유: 단일 선택 ----------
+  const reasonButtons = [...document.querySelectorAll('#reason-group .reason-chip')];
+  reasonButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      reasonButtons.forEach(b => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+    });
+  });
+
+  // ---------- 탈퇴 버튼 활성화 조건 ----------
+  const withdrawPassword = document.getElementById('withdraw-password');
+  const withdrawAgree = document.getElementById('withdraw-agree');
+  const withdrawSubmit = document.getElementById('withdraw-submit');
+  const withdrawHint = document.getElementById('withdraw-hint');
+  let withdrawInteracted = false;
+
+  function updateSubmitState() {
+    withdrawInteracted = true;
+    const enabled = withdrawPassword.value.trim().length > 0 && withdrawAgree.checked;
+    withdrawSubmit.disabled = !enabled;
+    withdrawSubmit.classList.toggle('bg-red-500', enabled);
+    withdrawSubmit.classList.toggle('bg-navborder', !enabled);
+    withdrawHint.classList.toggle('hidden', enabled || !withdrawInteracted);
+  }
+  withdrawPassword.addEventListener('input', updateSubmitState);
+  withdrawAgree.addEventListener('change', updateSubmitState);
+</script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>먹을지도 · 회원가입 화면 목업 (반응형)</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#FF6000', ink: '#222222', muted: '#A3A3A3', muted2: '#737373',
+          hairline: '#E5E5E5', promo: '#FCF4EE', navborder: '#D4D4D4',
+        },
+        fontFamily: { sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'] },
+        boxShadow: { floating: '0 4px 16px rgba(34, 34, 34, 0.12)' },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+</style>
+</head>
+<!-- 인증 화면은 헤더 내비게이션 없이, 데스크톱에서는 중앙 정렬된 카드로만 확장 -->
+<body class="bg-white lg:bg-neutral-50 lg:flex lg:items-start lg:justify-center lg:py-12">
+<div class="relative min-h-screen w-full lg:min-h-0 lg:w-full lg:max-w-[440px] bg-white lg:rounded-2xl lg:border lg:border-hairline lg:shadow-floating overflow-hidden flex flex-col">
+
+  <header class="shrink-0 flex items-center gap-3 px-4 py-3.5">
+    <a href="login.html" aria-label="뒤로가기" class="w-8 h-8 flex items-center justify-center -ml-1">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1 class="text-[16px] font-bold text-ink">회원가입</h1>
+  </header>
+
+  <div class="flex-1 overflow-y-auto px-5 pb-8 lg:flex-none lg:overflow-visible">
+    <form class="flex flex-col gap-4 mt-2" id="signup-form">
+      <div>
+        <label class="text-[13px] font-semibold text-ink">이메일</label>
+        <div class="mt-1.5 flex gap-2">
+          <input id="email-input" type="email" placeholder="you@example.com" class="flex-1 min-w-0 rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
+          <button type="button" id="check-email-btn" class="shrink-0 rounded-xl border border-navborder text-ink text-[13px] font-bold px-3.5">중복확인</button>
+        </div>
+        <p id="email-check-msg" class="hidden text-[12px] font-semibold text-primary mt-1.5">사용 가능한 이메일이에요</p>
+
+        <!-- 이메일 인증: 중복확인 통과 후 노출 -->
+        <button type="button" id="send-code-btn" class="hidden mt-2 text-[12px] font-semibold text-primary">
+          인증코드 받기
+        </button>
+
+        <div id="email-verify-block" class="hidden mt-2.5 rounded-xl border border-hairline p-3">
+          <p class="text-[12px] text-muted2">이메일로 받은 6자리 인증코드를 입력해주세요</p>
+          <div class="flex gap-2 mt-2">
+            <input id="verify-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="6자리 숫자" class="flex-1 min-w-0 rounded-xl border border-hairline px-3.5 py-2.5 text-[14px] tracking-[0.3em] outline-none focus:border-primary" />
+            <button type="button" id="confirm-code-btn" disabled class="shrink-0 rounded-xl bg-navborder text-white text-[13px] font-bold px-3.5 transition-colors">인증확인</button>
+          </div>
+          <button type="button" id="resend-code-btn" class="mt-2 text-[12px] font-semibold text-primary">코드를 받지 못하셨나요? 재발송</button>
+        </div>
+
+        <p id="email-verified-msg" class="hidden mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          이메일 인증이 완료됐어요
+        </p>
+      </div>
+
+      <div>
+        <label class="text-[13px] font-semibold text-ink">닉네임</label>
+        <input id="nickname-input" type="text" placeholder="다른 사용자에게 보여질 이름" class="mt-1.5 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
+        <p id="nickname-error" class="hidden text-[12px] font-semibold text-red-500 mt-1.5">닉네임을 입력해주세요</p>
+      </div>
+
+      <div>
+        <label class="text-[13px] font-semibold text-ink">비밀번호</label>
+        <div class="mt-1.5 relative">
+          <input id="password-input" type="password" placeholder="영문, 숫자 포함 8자 이상" class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
+          <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-muted2" data-target="password-input" aria-label="비밀번호 표시">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p id="password-length-error" class="hidden text-[12px] font-semibold text-red-500 mt-1.5">비밀번호는 영문, 숫자 포함 8자 이상이어야 해요</p>
+      </div>
+
+      <div>
+        <label class="text-[13px] font-semibold text-ink">비밀번호 확인</label>
+        <div class="mt-1.5 relative">
+          <input id="password-confirm-input" type="password" placeholder="비밀번호를 다시 입력해주세요" class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
+          <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 text-muted2" data-target="password-confirm-input" aria-label="비밀번호 표시">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p id="password-mismatch-msg" class="hidden text-[12px] font-semibold text-red-500 mt-1.5">비밀번호가 일치하지 않아요</p>
+      </div>
+
+      <!-- 약관 동의 -->
+      <div class="mt-2 rounded-2xl border border-hairline p-4">
+        <label class="flex items-center gap-2.5">
+          <input type="checkbox" id="agree-all" class="w-5 h-5 rounded accent-primary" />
+          <span class="text-[14px] font-bold text-ink">약관 전체 동의</span>
+        </label>
+        <div class="h-px bg-hairline my-3"></div>
+        <div class="flex flex-col gap-2.5">
+          <label class="flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <input type="checkbox" class="agree-item agree-required w-4.5 h-4.5 rounded accent-primary" />
+              <span class="text-[13px] text-ink">(필수) 서비스 이용약관</span>
+            </span>
+            <a href="#" class="text-[12px] text-muted2 underline">보기</a>
+          </label>
+          <label class="flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <input type="checkbox" class="agree-item agree-required w-4.5 h-4.5 rounded accent-primary" />
+              <span class="text-[13px] text-ink">(필수) 개인정보 처리방침</span>
+            </span>
+            <a href="#" class="text-[12px] text-muted2 underline">보기</a>
+          </label>
+          <label class="flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <input type="checkbox" class="agree-item agree-required w-4.5 h-4.5 rounded accent-primary" />
+              <span class="text-[13px] text-ink">(필수) 위치기반서비스 이용약관</span>
+            </span>
+            <a href="#" class="text-[12px] text-muted2 underline">보기</a>
+          </label>
+          <label class="flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <input type="checkbox" class="agree-item w-4.5 h-4.5 rounded accent-primary" />
+              <span class="text-[13px] text-ink">(선택) 마케팅 정보 수신</span>
+            </span>
+            <a href="#" class="text-[12px] text-muted2 underline">보기</a>
+          </label>
+        </div>
+      </div>
+      <p id="terms-error" class="hidden text-[12px] font-semibold text-red-500 -mt-2">필수 약관에 모두 동의해주세요</p>
+
+      <button type="button" id="submit-btn" disabled onclick="window.location.href='index.html'" class="mt-2 w-full rounded-xl bg-navborder text-white text-[15px] font-bold py-3.5 transition-colors">
+        가입하기
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ---------- 비밀번호 표시/숨김 ----------
+  document.querySelectorAll('.toggle-password').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    });
+  });
+
+  // ---------- 비밀번호 길이 / 확인 실시간 검증 ----------
+  const password = document.getElementById('password-input');
+  const passwordConfirm = document.getElementById('password-confirm-input');
+  const mismatchMsg = document.getElementById('password-mismatch-msg');
+  const passwordLengthError = document.getElementById('password-length-error');
+  let passwordTouched = false;
+
+  function checkPasswordMatch() {
+    passwordTouched = true;
+    const tooShort = password.value.length > 0 && password.value.length < 8;
+    passwordLengthError.classList.toggle('hidden', !tooShort);
+    const mismatch = passwordConfirm.value.length > 0 && password.value !== passwordConfirm.value;
+    mismatchMsg.classList.toggle('hidden', !mismatch);
+    updateSubmitState();
+  }
+  password.addEventListener('input', checkPasswordMatch);
+  passwordConfirm.addEventListener('input', checkPasswordMatch);
+
+  // ---------- 이메일 중복확인 (목업 스텁) ----------
+  let emailVerified = false;
+  const emailInput = document.getElementById('email-input');
+  const sendCodeBtn = document.getElementById('send-code-btn');
+  const emailVerifyBlock = document.getElementById('email-verify-block');
+  const emailVerifiedMsg = document.getElementById('email-verified-msg');
+  const verifyCodeInput = document.getElementById('verify-code-input');
+  const confirmCodeBtn = document.getElementById('confirm-code-btn');
+  const resendCodeBtn = document.getElementById('resend-code-btn');
+
+  document.getElementById('check-email-btn').addEventListener('click', () => {
+    if (!emailInput.value) return;
+    document.getElementById('email-check-msg').classList.remove('hidden');
+    // 중복확인 통과 시 이메일 인증 절차(POST /api/auth/signup/verify/request)를 노출한다.
+    sendCodeBtn.classList.remove('hidden');
+  });
+
+  // 이메일 재수정 시 인증 상태를 초기화한다 — 검증된 이메일과 실제 가입 이메일이 달라지는 것을 방지.
+  emailInput.addEventListener('input', () => {
+    emailVerified = false;
+    document.getElementById('email-check-msg').classList.add('hidden');
+    sendCodeBtn.classList.add('hidden');
+    emailVerifyBlock.classList.add('hidden');
+    emailVerifiedMsg.classList.add('hidden');
+    updateSubmitState();
+  });
+
+  function requestVerificationCode() {
+    emailVerifyBlock.classList.remove('hidden');
+    verifyCodeInput.value = '';
+    confirmCodeBtn.disabled = true;
+    confirmCodeBtn.classList.remove('bg-primary');
+    confirmCodeBtn.classList.add('bg-navborder');
+  }
+  sendCodeBtn.addEventListener('click', requestVerificationCode);
+
+  verifyCodeInput.addEventListener('input', () => {
+    verifyCodeInput.value = verifyCodeInput.value.replace(/\D/g, '').slice(0, 6);
+    const valid = verifyCodeInput.value.length === 6;
+    confirmCodeBtn.disabled = !valid;
+    confirmCodeBtn.classList.toggle('bg-primary', valid);
+    confirmCodeBtn.classList.toggle('bg-navborder', !valid);
+  });
+
+  confirmCodeBtn.addEventListener('click', () => {
+    if (confirmCodeBtn.disabled) return;
+    // 실제 구현에서는 POST /api/auth/signup/verify/confirm 응답으로 인증 여부를 확인한다.
+    emailVerified = true;
+    emailVerifyBlock.classList.add('hidden');
+    sendCodeBtn.classList.add('hidden');
+    emailVerifiedMsg.classList.remove('hidden');
+    emailInput.disabled = true;
+    document.getElementById('check-email-btn').disabled = true;
+    updateSubmitState();
+  });
+
+  resendCodeBtn.addEventListener('click', () => {
+    let remaining = 60;
+    resendCodeBtn.disabled = true;
+    resendCodeBtn.classList.replace('text-primary', 'text-muted2');
+    const timer = setInterval(() => {
+      resendCodeBtn.textContent = `${remaining}초 후 다시 시도할 수 있어요`;
+      remaining -= 1;
+      if (remaining < 0) {
+        clearInterval(timer);
+        resendCodeBtn.disabled = false;
+        resendCodeBtn.textContent = '코드를 받지 못하셨나요? 재발송';
+        resendCodeBtn.classList.replace('text-muted2', 'text-primary');
+      }
+    }, 1000);
+  });
+
+  // ---------- 약관 전체 동의 ----------
+  const termsError = document.getElementById('terms-error');
+  let termsTouched = false;
+  const agreeAll = document.getElementById('agree-all');
+  const agreeItems = [...document.querySelectorAll('.agree-item')];
+  agreeAll.addEventListener('change', () => {
+    termsTouched = true;
+    agreeItems.forEach(item => { item.checked = agreeAll.checked; });
+    updateSubmitState();
+  });
+  agreeItems.forEach(item => {
+    item.addEventListener('change', () => {
+      termsTouched = true;
+      agreeAll.checked = agreeItems.every(i => i.checked);
+      updateSubmitState();
+    });
+  });
+
+  // ---------- 가입하기 버튼 활성화 조건 ----------
+  // 이메일 인증 완료 / 비밀번호 일치 여부는 각 필드 아래에 이미 실시간 메시지가 있으므로 여기서 다시 안내하지 않는다.
+  // 대신 별도 안내가 없던 닉네임 · 비밀번호 길이 · 약관 동의는 각자의 자리에 메시지를 채운다.
+  const submitBtn = document.getElementById('submit-btn');
+  const nickname = document.getElementById('nickname-input');
+  const nicknameError = document.getElementById('nickname-error');
+  const email = document.getElementById('email-input');
+  const requiredAgreed = () => [...document.querySelectorAll('.agree-required')].every(i => i.checked);
+  let nicknameTouched = false;
+
+  function updateSubmitState() {
+    const nicknameFilled = nickname.value.trim().length > 0;
+    nicknameError.classList.toggle('hidden', nicknameFilled || !nicknameTouched);
+
+    const agreed = requiredAgreed();
+    termsError.classList.toggle('hidden', agreed || !termsTouched);
+
+    const passwordsMatch = password.value.length >= 8 && password.value === passwordConfirm.value;
+    const enabled = emailVerified && nicknameFilled && passwordsMatch && agreed;
+    submitBtn.disabled = !enabled;
+    submitBtn.classList.toggle('bg-primary', enabled);
+    submitBtn.classList.toggle('bg-navborder', !enabled);
+  }
+
+  nickname.addEventListener('input', () => { nicknameTouched = true; updateSubmitState(); });
+  email.addEventListener('input', updateSubmitState);
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>먹을지도 · 리뷰 작성 화면 목업 (반응형)</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#FF6000', ink: '#222222', muted: '#A3A3A3', muted2: '#737373',
+          hairline: '#E5E5E5', promo: '#FCF4EE', navborder: '#D4D4D4',
+        },
+        fontFamily: { sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'] },
+        boxShadow: { floating: '0 4px 16px rgba(34, 34, 34, 0.12)' },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<!-- 데스크톱에서는 폼을 화면 전체로 늘리지 않고 중앙 정렬된 카드(모달 폭)로 유지 -->
+<body class="bg-white lg:bg-neutral-50 lg:flex lg:items-start lg:justify-center lg:py-12">
+<div class="relative min-h-screen w-full lg:min-h-0 lg:w-full lg:max-w-xl bg-white lg:rounded-2xl lg:border lg:border-hairline lg:shadow-floating overflow-hidden flex flex-col">
+
+  <!-- ============ 헤더 ============ -->
+  <header class="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-hairline">
+    <a href="restaurant-detail.html" aria-label="뒤로가기" class="w-8 h-8 flex items-center justify-center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1 class="text-[16px] font-bold text-ink">리뷰 작성</h1>
+    <div class="w-8"></div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto pb-28 lg:flex-none lg:overflow-visible lg:pb-6">
+    <!-- 대상 식당 카드 -->
+    <div class="mx-4 mt-4 flex items-center gap-3 rounded-2xl border border-hairline p-3">
+      <div class="w-12 h-12 rounded-xl bg-neutral-200 shrink-0"></div>
+      <div class="min-w-0">
+        <p class="text-[12px] font-semibold text-primary">한식 · 국밥</p>
+        <h2 class="text-[14px] font-bold text-ink truncate">혼밥각 국밥집</h2>
+      </div>
+    </div>
+
+    <!-- 별점 선택 -->
+    <div class="px-4 mt-6">
+      <p class="text-[14px] font-bold text-ink">이 식당은 어떠셨나요?</p>
+      <div id="star-picker" class="flex items-center gap-2 mt-3">
+        <button class="star-btn" data-value="1" aria-label="1점"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" stroke-width="1.5"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></button>
+        <button class="star-btn" data-value="2" aria-label="2점"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" stroke-width="1.5"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></button>
+        <button class="star-btn" data-value="3" aria-label="3점"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" stroke-width="1.5"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></button>
+        <button class="star-btn" data-value="4" aria-label="4점"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" stroke-width="1.5"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></button>
+        <button class="star-btn" data-value="5" aria-label="5점"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" stroke-width="1.5"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></button>
+        <span id="star-label" class="ml-2 text-[13px] font-semibold text-muted2">별점을 선택해주세요</span>
+      </div>
+    </div>
+
+    <!-- 사진 첨부 -->
+    <div class="px-4 mt-6">
+      <p class="text-[14px] font-bold text-ink">사진 첨부 <span class="text-muted2 font-medium">(최대 5장)</span></p>
+      <div class="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+        <button class="shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-navborder flex flex-col items-center justify-center gap-1 text-muted2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5-9 9"/></svg>
+          <span class="text-[11px] font-semibold">0/5</span>
+        </button>
+        <div class="shrink-0 w-20 h-20 rounded-xl bg-neutral-200"></div>
+        <div class="shrink-0 w-20 h-20 rounded-xl bg-neutral-200"></div>
+      </div>
+    </div>
+
+    <!-- 텍스트 리뷰 -->
+    <div class="px-4 mt-6">
+      <p class="text-[14px] font-bold text-ink">리뷰 내용</p>
+      <textarea
+        id="review-text"
+        maxlength="500"
+        rows="6"
+        placeholder="다른 사용자에게 도움이 되는 솔직한 리뷰를 남겨주세요. (맛, 가격, 분위기, 서비스 등)"
+        class="mt-3 w-full rounded-2xl border border-hairline p-3.5 text-[14px] text-ink placeholder-muted outline-none focus:border-primary resize-none"
+      ></textarea>
+      <p class="text-right text-[12px] text-muted2 mt-1"><span id="char-count">0</span>/500</p>
+    </div>
+  </div>
+
+  <!-- ============ 등록 버튼: 모바일은 하단 고정, 데스크톱은 카드 내부 정적 배치 ============ -->
+  <div class="absolute bottom-0 inset-x-0 lg:static lg:inset-auto bg-white border-t border-hairline px-4 py-3">
+    <p id="submit-hint" class="hidden text-[12px] font-semibold text-red-500 mb-2">별점을 선택해주세요</p>
+    <button type="button" id="submit-btn" disabled class="w-full rounded-xl bg-navborder text-white text-[15px] font-bold py-3.5 transition-colors">
+      리뷰 등록하기
+    </button>
+  </div>
+</div>
+
+<script>
+  // ---------- 별점 선택 ----------
+  const starLabels = ['', '별로예요', '아쉬워요', '보통이에요', '좋아요', '최고예요'];
+  let selectedRating = 0;
+  const submitBtn = document.getElementById('submit-btn');
+
+  function renderStars(value, hoverValue) {
+    document.querySelectorAll('.star-btn').forEach(btn => {
+      const v = Number(btn.dataset.value);
+      const filled = v <= (hoverValue || value);
+      const svg = btn.querySelector('svg');
+      svg.setAttribute('fill', filled ? '#FF6000' : 'none');
+      svg.setAttribute('stroke', filled ? '#FF6000' : '#D4D4D4');
+    });
+  }
+
+  document.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRating = Number(btn.dataset.value);
+      renderStars(selectedRating);
+      document.getElementById('star-label').textContent = `${selectedRating}점 · ${starLabels[selectedRating]}`;
+      updateSubmitState();
+    });
+    btn.addEventListener('mouseenter', () => renderStars(selectedRating, Number(btn.dataset.value)));
+    btn.addEventListener('mouseleave', () => renderStars(selectedRating));
+  });
+
+  // ---------- 글자 수 카운트 ----------
+  const textarea = document.getElementById('review-text');
+  textarea.addEventListener('input', () => {
+    document.getElementById('char-count').textContent = textarea.value.length;
+  });
+
+  // ---------- 등록 버튼 활성화: 별점 선택 시에만 등록 가능 ----------
+  const submitHint = document.getElementById('submit-hint');
+  function updateSubmitState() {
+    const enabled = selectedRating > 0;
+    submitBtn.disabled = !enabled;
+    submitBtn.classList.toggle('bg-primary', enabled);
+    submitBtn.classList.toggle('bg-navborder', !enabled);
+    submitHint.classList.toggle('hidden', enabled);
+  }
+  updateSubmitState();
+</script>
+</body>
+</html>

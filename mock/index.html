@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>먹을지도 · 메인 지도 화면 목업 (반응형)</title>
+
+<!-- Pretendard: DESIGN.md에 관측된 문서 서체를 홈페이지 상품 서체가 확정되기 전까지 임시 대체 폰트로 사용 -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+
+<!-- Tailwind Play CDN: 목업 전용, 실제 빌드에는 Vite 기반 Tailwind 설정 사용 예정 -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        // DESIGN.md tokens.colors 값을 그대로 매핑
+        colors: {
+          primary: '#FF6000',
+          ink: '#222222',
+          muted: '#A3A3A3',
+          muted2: '#737373',
+          hairline: '#E5E5E5',
+          promo: '#FCF4EE',
+          navborder: '#D4D4D4',
+        },
+        fontFamily: {
+          sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'],
+        },
+        boxShadow: {
+          floating: '0 4px 16px rgba(34, 34, 34, 0.12)',
+          sheet: '0 -4px 24px rgba(34, 34, 34, 0.14)',
+        },
+      },
+    },
+  };
+</script>
+
+<!--
+  반응형 전략 (docs/responsive-web-design-proposal.md 참조)
+  - lg(1024px) 미만: 모바일 레이아웃. 바텀시트 · 하단 네비게이션 · 지도/리스트 토글 · 플로팅 FAB 유지.
+  - lg(1024px) 이상: 데스크톱 레이아웃. 좌측 리스트 패널 + 우측 지도 2단 구성, 상세정보는
+    지도 영역 좌측에 도킹되는 플로팅 패널로 표시(바텀시트를 대체).
+  - 두 레이아웃은 구조 자체가 다른 컴포넌트 조합이라 하나의 DOM을 유동적으로 늘리는 방식 대신
+    #mobile-shell / #desktop-shell 두 루트를 두고 breakpoint에 따라 배타적으로 노출한다.
+-->
+<style>
+  html, body { height: 100%; overscroll-behavior: none; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+
+  /* 스크롤바 숨김 (카테고리 칩 가로 스크롤용) */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* 지도 목업 배경: 카카오 지도 타일을 흉내낸 그리드 패턴 */
+  .map-tile-bg {
+    background-color: #eef0f1;
+    background-image:
+      linear-gradient(#e2e5e7 1px, transparent 1px),
+      linear-gradient(90deg, #e2e5e7 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* 바텀시트: 펼침/접힘 상태를 transform으로 전환 (모바일 전용) */
+  #bottom-sheet {
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  #bottom-sheet.sheet-peek { transform: translateY(calc(100% - 172px)); }
+  #bottom-sheet.sheet-expanded { transform: translateY(0); }
+  #bottom-sheet.sheet-hidden { transform: translateY(100%); }
+
+  /* 사용자 현재 위치 마커 pulse */
+  @keyframes pulse-ring {
+    0% { transform: scale(0.6); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+
+  .tag-chip[aria-pressed="true"] {
+    background-color: #FF6000;
+    color: #fff;
+    border-color: #FF6000;
+  }
+  .cat-chip[aria-pressed="true"] {
+    background-color: #222222;
+    color: #fff;
+    border-color: #222222;
+  }
+</style>
+</head>
+
+<body class="bg-white">
+
+<!-- ======================================================================= -->
+<!-- ============================ 모바일 셸 (<1024px) ======================== -->
+<!-- ======================================================================= -->
+<div id="mobile-shell" class="lg:hidden relative min-h-screen w-full bg-white overflow-hidden">
+
+  <!-- ================= 지도 뷰 (기본 화면) ================= -->
+  <section id="map-view" class="absolute inset-0">
+
+    <!-- 지도 전체 배경: 실서비스에서는 카카오 지도 SDK가 이 영역을 대체 -->
+    <div class="map-tile-bg absolute inset-0">
+
+      <!-- 사용자 현재 위치 -->
+      <div class="absolute" style="top:46%; left:52%;">
+        <div class="relative w-4 h-4">
+          <span class="absolute inset-0 rounded-full bg-blue-500/60 pulse-ring"></span>
+          <span class="absolute inset-0 rounded-full bg-blue-500 border-2 border-white shadow"></span>
+        </div>
+      </div>
+
+      <!-- 임시 마커: 클릭 시 하단 바텀시트에 요약 정보 표시 -->
+      <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:30%; left:28%;" data-name="맛있는 김밥천국" data-cat="한식 · 분식" data-rating="4.3" data-reviews="128" data-tags="#혼밥 #국물 #가성비" aria-label="맛있는 김밥천국 마커">
+        <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+          <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+          <circle cx="17" cy="17" r="7" fill="white"/>
+        </svg>
+      </button>
+
+      <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:38%; left:64%;" data-name="사장님 고기서비스" data-cat="고기집" data-rating="4.6" data-reviews="342" data-tags="#볶음 #회식 #술안주" aria-label="사장님 고기서비스 마커">
+        <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+          <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+          <circle cx="17" cy="17" r="7" fill="white"/>
+        </svg>
+      </button>
+
+      <!-- 선택된(활성) 마커: 아래 바텀시트 정보와 매칭되는 기본 선택 상태 -->
+      <button class="marker absolute -translate-x-1/2 -translate-y-full scale-110" style="top:52%; left:44%;" data-name="혼밥각 국밥집" data-cat="한식 · 국밥" data-rating="4.8" data-reviews="211" data-tags="#국물 #혼밥 #24시간" aria-label="혼밥각 국밥집 마커 (선택됨)">
+        <svg width="40" height="49" viewBox="0 0 34 42" fill="none">
+          <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#FF6000"/>
+          <circle cx="17" cy="17" r="7" fill="white"/>
+        </svg>
+      </button>
+
+      <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:66%; left:30%;" data-name="동네 카페 온기" data-cat="카페 · 디저트" data-rating="4.5" data-reviews="97" data-tags="#디저트 #카공 #조용함" aria-label="동네 카페 온기 마커">
+        <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+          <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+          <circle cx="17" cy="17" r="7" fill="white"/>
+        </svg>
+      </button>
+
+      <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:22%; left:70%;" data-name="중화반점" data-cat="중식" data-rating="4.1" data-reviews="64" data-tags="#볶음 #배달 #매콤" aria-label="중화반점 마커">
+        <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+          <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+          <circle cx="17" cy="17" r="7" fill="white"/>
+        </svg>
+      </button>
+
+      <!-- 카카오맵 보완 데이터 마커: 사용자 제보 전, 카카오 로컬 API로 채워진 기본 정보(hybrid-data-sourcing-strategy.md §2.4) -->
+      <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:45%; left:78%;" data-name="골목 우동집" data-cat="일식" data-rating="0.0" data-reviews="0" data-tags="" data-source="kakao" aria-label="골목 우동집 마커 (카카오맵 제공 정보)">
+        <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+          <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#A3A3A3"/>
+          <circle cx="17" cy="17" r="7" fill="white"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 지도 위 상단 그라데이션(플로팅 UI 가독성 확보) -->
+    <div class="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-white/90 to-transparent pointer-events-none"></div>
+
+    <!-- ============ 상단 플로팅 검색 & 필터 영역 ============ -->
+    <div class="absolute top-0 inset-x-0 pt-4 px-4 z-20">
+
+      <!-- 검색 인풋: DESIGN.md course-search 토큰(20px/600, 포커스 시 accent 컬러 보더) 준용 -->
+      <div class="flex items-center gap-2 bg-white rounded-2xl shadow-floating border border-hairline px-4 py-3">
+        <input
+          type="text"
+          placeholder="상호명, 지역으로 검색"
+          class="flex-1 text-[16px] font-medium text-ink placeholder-muted outline-none bg-transparent focus:placeholder-muted2"
+        />
+        <button aria-label="검색" class="text-primary shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+
+      <!-- 카테고리 필터 칩: 단일 선택, 가로 스크롤 -->
+      <div class="cat-row mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="true">전체</button>
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">한식</button>
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">카페</button>
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">고기집</button>
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">중식</button>
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">일식</button>
+        <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">분식</button>
+      </div>
+
+      <!-- '아무거나' 추천 트리거: 메뉴를 못 정했을 때 다중 태그 필터 패널을 펼치는 버튼 -->
+      <div class="amugeona-block mt-2">
+        <button aria-pressed="false" aria-expanded="false"
+          class="amugeona-toggle w-full flex items-center justify-center gap-1.5 rounded-2xl bg-promo border border-primary/30 px-4 py-2.5 text-[14px] font-bold text-primary shadow-floating">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+          오늘 뭐 먹지? 아무거나 추천받기
+        </button>
+
+        <!-- 태그 다중 선택 패널: 기본 hidden, 토글 버튼으로 펼침 -->
+        <div class="amugeona-panel hidden mt-2 rounded-2xl border border-hairline bg-white p-3 shadow-floating">
+          <p class="text-[12px] text-muted2 font-medium mb-2">끌리는 태그를 골라주세요 (중복 선택 가능)</p>
+          <div class="flex flex-wrap gap-2">
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#한식</button>
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#중식</button>
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="true">#국물</button>
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#볶음</button>
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="true">#혼밥</button>
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#분위기</button>
+            <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#가성비</button>
+          </div>
+          <button class="amugeona-submit mt-3 w-full rounded-xl bg-primary text-white text-[14px] font-bold py-2.5 active:opacity-90">
+            내 반경 1km에서 추천받기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 바텀시트: 마커 클릭 시 식당 요약 정보 ============ -->
+    <div id="bottom-sheet" class="sheet-peek absolute inset-x-0 bottom-0 z-30 bg-white rounded-t-3xl shadow-sheet border-t border-hairline" style="height: 320px; padding-bottom: 84px;">
+      <!-- 드래그 핸들: 탭하면 펼침/접힘 전환 -->
+      <button id="sheet-handle" class="w-full flex justify-center pt-2.5 pb-1" aria-label="바텀시트 펼치기/접기">
+        <span class="w-10 h-1.5 rounded-full bg-navborder"></span>
+      </button>
+
+      <div class="px-5 pt-2">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <p id="sheet-cat" class="text-[12px] font-semibold text-primary">한식 · 국밥</p>
+              <span id="sheet-source-badge" class="hidden rounded-full bg-neutral-100 text-muted2 text-[10px] font-bold px-1.5 py-0.5">카카오맵 제공</span>
+            </div>
+            <h2 id="sheet-name" class="text-[19px] font-bold text-ink mt-0.5">혼밥각 국밥집</h2>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="flex items-center gap-0.5 text-[13px] font-bold text-ink">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+                <span id="sheet-rating">4.8</span>
+              </span>
+              <span class="text-[13px] text-muted2">리뷰 <span id="sheet-reviews">211</span>개</span>
+            </div>
+          </div>
+
+          <!-- 즐겨찾기(북마크) 토글: 카카오 병합 데이터는 DB row가 없어 북마크가 불가능하므로 숨긴다 (hybrid-data-sourcing-strategy.md §3, §6) -->
+          <button id="sheet-bookmark-btn" class="detail-bookmark shrink-0 w-10 h-10 rounded-full border border-hairline flex items-center justify-center" aria-pressed="false" aria-label="즐겨찾기 토글">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </button>
+        </div>
+
+        <div id="sheet-tags" class="flex flex-wrap gap-1.5 mt-3">
+          <span class="rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1">#국물</span>
+          <span class="rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1">#혼밥</span>
+          <span class="rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1">#24시간</span>
+        </div>
+
+        <div class="mt-3 flex items-center gap-1.5 text-[13px] text-muted2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          영업중 · 22:00에 라스트오더
+        </div>
+
+        <!-- 카카오 병합 데이터는 상세 페이지(DB row)가 없으므로, 제보를 유도하는 CTA로 대체한다 (§6) -->
+        <a id="sheet-cta" href="restaurant-detail.html" class="mt-4 flex items-center justify-center w-full rounded-xl bg-ink text-white text-[14px] font-bold py-3">
+          상세 정보 보기
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 리스트 뷰 (지도/목록 토글로 전환) ================= -->
+  <section id="list-view" class="hidden absolute inset-0 pt-[172px] pb-20 overflow-y-auto bg-white z-10">
+    <div class="px-4 flex items-center justify-between">
+      <p class="text-[13px] text-muted2 font-medium">반경 1km · <span class="text-ink font-bold">18개</span> 매장</p>
+      <div class="flex items-center gap-1 text-[12px] font-semibold">
+        <button class="px-2.5 py-1 rounded-full bg-ink text-white">거리순</button>
+        <button class="px-2.5 py-1 rounded-full text-muted2">평점순</button>
+      </div>
+    </div>
+
+    <div class="mt-3 px-4 flex flex-col gap-3">
+      <!-- 리스트 카드 아이템 -->
+      <article class="flex gap-3 rounded-2xl border border-hairline p-3">
+        <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between">
+            <div class="min-w-0">
+              <p class="text-[12px] font-semibold text-primary">한식 · 국밥</p>
+              <h3 class="text-[15px] font-bold text-ink truncate">혼밥각 국밥집</h3>
+            </div>
+            <button class="list-bookmark shrink-0" aria-pressed="false" aria-label="즐겨찾기 토글">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-1 mt-1 text-[12px] font-bold text-ink">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+            4.8 <span class="font-medium text-muted2">· 리뷰 211 · 320m</span>
+          </div>
+          <p class="mt-1 text-[12px] text-muted2">#국물 #혼밥 #24시간</p>
+        </div>
+      </article>
+
+      <article class="flex gap-3 rounded-2xl border border-hairline p-3">
+        <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between">
+            <div class="min-w-0">
+              <p class="text-[12px] font-semibold text-primary">고기집</p>
+              <h3 class="text-[15px] font-bold text-ink truncate">사장님 고기서비스</h3>
+            </div>
+            <button class="list-bookmark shrink-0" aria-pressed="false" aria-label="즐겨찾기 토글">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-1 mt-1 text-[12px] font-bold text-ink">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+            4.6 <span class="font-medium text-muted2">· 리뷰 342 · 540m</span>
+          </div>
+          <p class="mt-1 text-[12px] text-muted2">#볶음 #회식 #술안주</p>
+        </div>
+      </article>
+
+      <article class="flex gap-3 rounded-2xl border border-hairline p-3">
+        <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between">
+            <div class="min-w-0">
+              <p class="text-[12px] font-semibold text-primary">카페 · 디저트</p>
+              <h3 class="text-[15px] font-bold text-ink truncate">동네 카페 온기</h3>
+            </div>
+            <button class="list-bookmark shrink-0" aria-pressed="true" aria-label="즐겨찾기 토글">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF6000" stroke="#FF6000" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-1 mt-1 text-[12px] font-bold text-ink">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+            4.5 <span class="font-medium text-muted2">· 리뷰 97 · 610m</span>
+          </div>
+          <p class="mt-1 text-[12px] text-muted2">#디저트 #카공 #조용함</p>
+        </div>
+      </article>
+
+      <!-- 카카오맵 보완 데이터 카드: hybrid-data-sourcing-strategy.md §2.4 -->
+      <article class="flex gap-3 rounded-2xl border border-hairline p-3">
+        <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <p class="text-[12px] font-semibold text-primary">일식</p>
+                <span class="rounded-full bg-neutral-100 text-muted2 text-[10px] font-bold px-1.5 py-0.5">카카오맵 제공</span>
+              </div>
+              <h3 class="text-[15px] font-bold text-ink truncate">골목 우동집</h3>
+            </div>
+            <!-- 카카오 병합 데이터는 DB row가 없어 북마크가 불가능하다 (hybrid-data-sourcing-strategy.md §3, §6) -->
+            <a href="report.html" class="shrink-0 text-[12px] font-bold text-primary">제보하기</a>
+          </div>
+          <p class="mt-1.5 text-[12px] text-muted2">아직 등록된 리뷰가 없어요 · 750m</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ 지도 / 리스트 뷰 토글 (플로팅, 두 뷰 공통) ============ -->
+  <div class="absolute left-1/2 -translate-x-1/2 z-20" style="bottom: 200px;">
+    <div id="view-toggle" class="flex items-center bg-ink text-white rounded-full shadow-floating text-[13px] font-bold overflow-hidden">
+      <button data-view="map" class="view-toggle-btn px-4 py-2 flex items-center gap-1.5 bg-white text-ink">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3zM9 4v13M15 7v13"/></svg>
+        지도
+      </button>
+      <button data-view="list" class="view-toggle-btn px-4 py-2 flex items-center gap-1.5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        목록
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ 플로팅 액션 버튼: 식당 제보 (두 뷰 공통) ============ -->
+  <a href="report.html" aria-label="식당 제보하기"
+    class="absolute z-20 right-4 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-white shadow-floating active:scale-95 transition"
+    style="bottom: 200px;">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </a>
+
+  <!-- ================= 하단 네비게이션 ================= -->
+  <nav class="absolute bottom-0 inset-x-0 z-40 bg-white border-t border-hairline flex items-stretch h-16">
+    <a href="index.html" class="flex-1 flex flex-col items-center justify-center gap-0.5 text-primary">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <span class="text-[11px] font-bold">지도 홈</span>
+    </a>
+    <a href="bookmarks.html" class="flex-1 flex flex-col items-center justify-center gap-0.5 text-muted">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      <span class="text-[11px] font-semibold">즐겨찾기</span>
+    </a>
+    <a href="mypage.html" class="flex-1 flex flex-col items-center justify-center gap-0.5 text-muted">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+      <span class="text-[11px] font-semibold">내 정보</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- ======================================================================= -->
+<!-- ============================ 데스크톱 셸 (≥1024px) ======================= -->
+<!-- ======================================================================= -->
+<div id="desktop-shell" class="hidden lg:flex lg:flex-col lg:h-screen lg:w-screen lg:overflow-hidden bg-white">
+
+  <!-- ================= 상단 헤더 (하단 네비게이션 대체) ================= -->
+  <header class="shrink-0 h-16 border-b border-hairline flex items-center justify-between px-6">
+    <div class="flex items-center gap-10">
+      <a href="index.html" class="flex items-center gap-1.5 text-ink font-extrabold text-[18px]">
+        <span class="text-primary">🍚</span> 먹을지도
+      </a>
+      <nav class="flex items-center gap-6 text-[14px] font-semibold">
+        <a href="index.html" class="flex items-center gap-1.5 text-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          지도 홈
+        </a>
+        <a href="bookmarks.html" class="flex items-center gap-1.5 text-muted2 hover:text-ink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          즐겨찾기
+        </a>
+        <a href="mypage.html" class="flex items-center gap-1.5 text-muted2 hover:text-ink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          내 정보
+        </a>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="report.html" class="flex items-center gap-1.5 rounded-full bg-primary text-white text-[13px] font-bold px-4 py-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        식당 제보하기
+      </a>
+      <!-- account-pill 토큰(DESIGN.md) 준용: border navborder, radius 9999px -->
+      <a href="login.html" class="rounded-full border border-navborder text-ink text-[13px] font-semibold px-4 py-2">로그인/회원가입</a>
+    </div>
+  </header>
+
+  <div class="flex flex-1 min-h-0">
+
+    <!-- ================= 좌측 리스트 패널 ================= -->
+    <aside class="w-[420px] shrink-0 border-r border-hairline flex flex-col min-h-0">
+
+      <div class="p-4 border-b border-hairline">
+        <!-- 검색 인풋 -->
+        <div class="flex items-center gap-2 bg-white rounded-2xl border border-hairline px-4 py-3">
+          <input
+            type="text"
+            placeholder="상호명, 지역으로 검색"
+            class="flex-1 text-[16px] font-medium text-ink placeholder-muted outline-none bg-transparent focus:placeholder-muted2"
+          />
+          <button aria-label="검색" class="text-primary shrink-0">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
+        </div>
+
+        <!-- 카테고리 필터 칩 -->
+        <div class="cat-row mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="true">전체</button>
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">한식</button>
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">카페</button>
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">고기집</button>
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">중식</button>
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">일식</button>
+          <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false">분식</button>
+        </div>
+
+        <!-- '아무거나' 추천 트리거 -->
+        <div class="amugeona-block mt-3">
+          <button aria-pressed="false" aria-expanded="false"
+            class="amugeona-toggle w-full flex items-center justify-center gap-1.5 rounded-2xl bg-promo border border-primary/30 px-4 py-2.5 text-[14px] font-bold text-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+            오늘 뭐 먹지? 아무거나 추천받기
+          </button>
+
+          <div class="amugeona-panel hidden mt-2 rounded-2xl border border-hairline bg-white p-3">
+            <p class="text-[12px] text-muted2 font-medium mb-2">끌리는 태그를 골라주세요 (중복 선택 가능)</p>
+            <div class="flex flex-wrap gap-2">
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#한식</button>
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#중식</button>
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="true">#국물</button>
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#볶음</button>
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="true">#혼밥</button>
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#분위기</button>
+              <button class="tag-chip rounded-full border border-navborder px-3 py-1.5 text-[12px] font-semibold text-ink" aria-pressed="false">#가성비</button>
+            </div>
+            <button class="amugeona-submit mt-3 w-full rounded-xl bg-primary text-white text-[14px] font-bold py-2.5">
+              내 반경 1km에서 추천받기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 리스트 결과: 지도와 항상 함께 노출(모바일의 지도/리스트 토글이 데스크톱에서는 불필요) -->
+      <div class="px-4 pt-3 flex items-center justify-between shrink-0">
+        <p class="text-[13px] text-muted2 font-medium">반경 1km · <span class="text-ink font-bold">18개</span> 매장</p>
+        <div class="flex items-center gap-1 text-[12px] font-semibold">
+          <button class="px-2.5 py-1 rounded-full bg-ink text-white">거리순</button>
+          <button class="px-2.5 py-1 rounded-full text-muted2">평점순</button>
+        </div>
+      </div>
+
+      <div class="mt-3 px-4 pb-4 flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+        <!-- 리스트 카드: 클릭 시 우측 지도 위 상세 패널에 표시(마커 클릭과 동일 동작) -->
+        <article class="desktop-list-card cursor-pointer flex gap-3 rounded-2xl border border-hairline p-3 hover:border-primary/40" data-name="혼밥각 국밥집" data-cat="한식 · 국밥" data-rating="4.8" data-reviews="211" data-tags="#국물 #혼밥 #24시간">
+          <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div class="min-w-0">
+                <p class="text-[12px] font-semibold text-primary">한식 · 국밥</p>
+                <h3 class="text-[15px] font-bold text-ink truncate">혼밥각 국밥집</h3>
+              </div>
+              <button class="list-bookmark shrink-0" aria-pressed="false" aria-label="즐겨찾기 토글" onclick="event.stopPropagation()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+            </div>
+            <div class="flex items-center gap-1 mt-1 text-[12px] font-bold text-ink">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+              4.8 <span class="font-medium text-muted2">· 리뷰 211 · 320m</span>
+            </div>
+            <p class="mt-1 text-[12px] text-muted2">#국물 #혼밥 #24시간</p>
+          </div>
+        </article>
+
+        <article class="desktop-list-card cursor-pointer flex gap-3 rounded-2xl border border-hairline p-3 hover:border-primary/40" data-name="사장님 고기서비스" data-cat="고기집" data-rating="4.6" data-reviews="342" data-tags="#볶음 #회식 #술안주">
+          <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div class="min-w-0">
+                <p class="text-[12px] font-semibold text-primary">고기집</p>
+                <h3 class="text-[15px] font-bold text-ink truncate">사장님 고기서비스</h3>
+              </div>
+              <button class="list-bookmark shrink-0" aria-pressed="false" aria-label="즐겨찾기 토글" onclick="event.stopPropagation()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+            </div>
+            <div class="flex items-center gap-1 mt-1 text-[12px] font-bold text-ink">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+              4.6 <span class="font-medium text-muted2">· 리뷰 342 · 540m</span>
+            </div>
+            <p class="mt-1 text-[12px] text-muted2">#볶음 #회식 #술안주</p>
+          </div>
+        </article>
+
+        <article class="desktop-list-card cursor-pointer flex gap-3 rounded-2xl border border-hairline p-3 hover:border-primary/40" data-name="동네 카페 온기" data-cat="카페 · 디저트" data-rating="4.5" data-reviews="97" data-tags="#디저트 #카공 #조용함">
+          <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div class="min-w-0">
+                <p class="text-[12px] font-semibold text-primary">카페 · 디저트</p>
+                <h3 class="text-[15px] font-bold text-ink truncate">동네 카페 온기</h3>
+              </div>
+              <button class="list-bookmark shrink-0" aria-pressed="true" aria-label="즐겨찾기 토글" onclick="event.stopPropagation()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF6000" stroke="#FF6000" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+            </div>
+            <div class="flex items-center gap-1 mt-1 text-[12px] font-bold text-ink">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+              4.5 <span class="font-medium text-muted2">· 리뷰 97 · 610m</span>
+            </div>
+            <p class="mt-1 text-[12px] text-muted2">#디저트 #카공 #조용함</p>
+          </div>
+        </article>
+
+        <!-- 카카오맵 보완 데이터 카드: hybrid-data-sourcing-strategy.md §2.4 -->
+        <article class="desktop-list-card cursor-pointer flex gap-3 rounded-2xl border border-hairline p-3 hover:border-primary/40" data-name="골목 우동집" data-cat="일식" data-rating="0.0" data-reviews="0" data-tags="" data-source="kakao">
+          <div class="w-20 h-20 rounded-xl bg-neutral-200 shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between">
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <p class="text-[12px] font-semibold text-primary">일식</p>
+                  <span class="rounded-full bg-neutral-100 text-muted2 text-[10px] font-bold px-1.5 py-0.5">카카오맵 제공</span>
+                </div>
+                <h3 class="text-[15px] font-bold text-ink truncate">골목 우동집</h3>
+              </div>
+              <!-- 카카오 병합 데이터는 DB row가 없어 북마크가 불가능하다 (hybrid-data-sourcing-strategy.md §3, §6) -->
+              <a href="report.html" class="shrink-0 text-[12px] font-bold text-primary" onclick="event.stopPropagation()">제보하기</a>
+            </div>
+            <p class="mt-1.5 text-[12px] text-muted2">아직 등록된 리뷰가 없어요 · 750m</p>
+          </div>
+        </article>
+      </div>
+    </aside>
+
+    <!-- ================= 우측 지도 영역 ================= -->
+    <div class="desktop-map relative flex-1 min-h-0">
+
+      <!-- 지도 전체 배경: 실서비스에서는 카카오 지도 SDK가 이 영역을 대체 -->
+      <div class="map-tile-bg absolute inset-0">
+
+        <!-- 사용자 현재 위치 -->
+        <div class="absolute" style="top:40%; left:56%;">
+          <div class="relative w-4 h-4">
+            <span class="absolute inset-0 rounded-full bg-blue-500/60 pulse-ring"></span>
+            <span class="absolute inset-0 rounded-full bg-blue-500 border-2 border-white shadow"></span>
+          </div>
+        </div>
+
+        <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:26%; left:22%;" data-name="맛있는 김밥천국" data-cat="한식 · 분식" data-rating="4.3" data-reviews="128" data-tags="#혼밥 #국물 #가성비" aria-label="맛있는 김밥천국 마커">
+          <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+            <circle cx="17" cy="17" r="7" fill="white"/>
+          </svg>
+        </button>
+
+        <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:34%; left:58%;" data-name="사장님 고기서비스" data-cat="고기집" data-rating="4.6" data-reviews="342" data-tags="#볶음 #회식 #술안주" aria-label="사장님 고기서비스 마커">
+          <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+            <circle cx="17" cy="17" r="7" fill="white"/>
+          </svg>
+        </button>
+
+        <!-- 선택된(활성) 마커: 기본 선택 상태로 상세 패널과 매칭 -->
+        <button class="marker absolute -translate-x-1/2 -translate-y-full scale-110" style="top:54%; left:38%;" data-name="혼밥각 국밥집" data-cat="한식 · 국밥" data-rating="4.8" data-reviews="211" data-tags="#국물 #혼밥 #24시간" aria-label="혼밥각 국밥집 마커 (선택됨)">
+          <svg width="40" height="49" viewBox="0 0 34 42" fill="none">
+            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#FF6000"/>
+            <circle cx="17" cy="17" r="7" fill="white"/>
+          </svg>
+        </button>
+
+        <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:68%; left:28%;" data-name="동네 카페 온기" data-cat="카페 · 디저트" data-rating="4.5" data-reviews="97" data-tags="#디저트 #카공 #조용함" aria-label="동네 카페 온기 마커">
+          <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+            <circle cx="17" cy="17" r="7" fill="white"/>
+          </svg>
+        </button>
+
+        <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:20%; left:74%;" data-name="중화반점" data-cat="중식" data-rating="4.1" data-reviews="64" data-tags="#볶음 #배달 #매콤" aria-label="중화반점 마커">
+          <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#222222"/>
+            <circle cx="17" cy="17" r="7" fill="white"/>
+          </svg>
+        </button>
+
+        <!-- 카카오맵 보완 데이터 마커: hybrid-data-sourcing-strategy.md §2.4 -->
+        <button class="marker absolute -translate-x-1/2 -translate-y-full" style="top:42%; left:80%;" data-name="골목 우동집" data-cat="일식" data-rating="0.0" data-reviews="0" data-tags="" data-source="kakao" aria-label="골목 우동집 마커 (카카오맵 제공 정보)">
+          <svg width="34" height="42" viewBox="0 0 34 42" fill="none">
+            <path d="M17 0C7.6 0 0 7.6 0 17c0 12.7 17 25 17 25s17-12.3 17-25C34 7.6 26.4 0 17 0z" fill="#A3A3A3"/>
+            <circle cx="17" cy="17" r="7" fill="white"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- ============ 상세정보 패널: 리스트 패널 옆(지도 좌측)에 도킹되는 플로팅 모달 ============ -->
+      <!-- 모바일 바텀시트와 동일한 데이터를 표시하되, 지도 좌측 상단에 도킹된 카드 형태로 렌더링 -->
+      <div id="desktop-panel" class="absolute top-4 left-4 z-30 w-[360px] max-h-[calc(100%-2rem)] overflow-y-auto rounded-2xl bg-white shadow-floating border border-hairline">
+        <div class="p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <p id="desktop-panel-cat" class="text-[12px] font-semibold text-primary">한식 · 국밥</p>
+                <span id="desktop-panel-source-badge" class="hidden rounded-full bg-neutral-100 text-muted2 text-[10px] font-bold px-1.5 py-0.5">카카오맵 제공</span>
+              </div>
+              <h2 id="desktop-panel-name" class="text-[19px] font-bold text-ink mt-0.5">혼밥각 국밥집</h2>
+              <div class="flex items-center gap-1.5 mt-1.5">
+                <span class="flex items-center gap-0.5 text-[13px] font-bold text-ink">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#FF6000"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+                  <span id="desktop-panel-rating">4.8</span>
+                </span>
+                <span class="text-[13px] text-muted2">리뷰 <span id="desktop-panel-reviews">211</span>개</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <!-- 카카오 병합 데이터는 DB row가 없어 북마크가 불가능하므로 숨긴다 (hybrid-data-sourcing-strategy.md §3, §6) -->
+              <button id="desktop-panel-bookmark-btn" class="detail-bookmark w-10 h-10 rounded-full border border-hairline flex items-center justify-center" aria-pressed="false" aria-label="즐겨찾기 토글">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </button>
+              <!-- 데스크톱 패널은 바텀시트 드래그 핸들 대신 명시적 닫기 버튼 사용 -->
+              <button id="desktop-panel-close" class="w-10 h-10 rounded-full border border-hairline flex items-center justify-center" aria-label="상세정보 패널 닫기">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="desktop-panel-tags" class="flex flex-wrap gap-1.5 mt-3">
+            <span class="rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1">#국물</span>
+            <span class="rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1">#혼밥</span>
+            <span class="rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1">#24시간</span>
+          </div>
+
+          <div class="mt-3 flex items-center gap-1.5 text-[13px] text-muted2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            영업중 · 22:00에 라스트오더
+          </div>
+
+          <!-- 카카오 병합 데이터는 상세 페이지(DB row)가 없으므로, 제보를 유도하는 CTA로 대체한다 (§6) -->
+          <a id="desktop-panel-cta" href="restaurant-detail.html" class="mt-4 flex items-center justify-center w-full rounded-xl bg-ink text-white text-[14px] font-bold py-3">
+            상세 정보 보기
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- 카테고리 칩: 행(cat-row) 단위로 단일 선택 ----------
+  // 모바일/데스크톱 셸에 동일 클래스가 각각 존재하므로 closest 없이 행 스코프로 순회
+  document.querySelectorAll('.cat-row').forEach(row => {
+    row.querySelectorAll('.cat-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        row.querySelectorAll('.cat-chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', 'true');
+      });
+    });
+  });
+
+  // ---------- '아무거나' 태그 패널: 블록(amugeona-block) 단위로 독립 동작 ----------
+  document.querySelectorAll('.amugeona-block').forEach(block => {
+    const toggle = block.querySelector('.amugeona-toggle');
+    const panel = block.querySelector('.amugeona-panel');
+
+    toggle.addEventListener('click', () => {
+      const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!isOpen));
+      toggle.setAttribute('aria-pressed', String(!isOpen));
+      panel.classList.toggle('hidden', isOpen);
+    });
+
+    block.querySelectorAll('.tag-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pressed = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!pressed));
+      });
+    });
+
+    block.querySelector('.amugeona-submit').addEventListener('click', () => {
+      const selected = [...block.querySelectorAll('.tag-chip[aria-pressed="true"]')].map(b => b.textContent.trim());
+      // 선택한 태그를 쿼리스트링으로 넘겨 추천 결과 화면에서 그대로 노출
+      window.location.href = `recommend-result.html?tags=${encodeURIComponent(selected.join(','))}`;
+      panel.classList.add('hidden');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // ---------- 즐겨찾기 토글: 리스트 카드 / 상세 패널(바텀시트·데스크톱 패널) 공통 ----------
+  function bindBookmarkToggle(selector) {
+    document.querySelectorAll(selector).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pressed = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!pressed));
+        const icon = btn.querySelector('svg');
+        icon.setAttribute('fill', !pressed ? '#FF6000' : 'none');
+        icon.setAttribute('stroke', !pressed ? '#FF6000' : '#222222');
+      });
+    });
+  }
+  bindBookmarkToggle('.list-bookmark');
+  bindBookmarkToggle('.detail-bookmark');
+
+  // ---------- 모바일: 지도 / 리스트 뷰 토글 ----------
+  const mapView = document.getElementById('map-view');
+  const listView = document.getElementById('list-view');
+  document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('bg-white', 'text-ink'));
+      btn.classList.add('bg-white', 'text-ink');
+
+      const showList = btn.dataset.view === 'list';
+      listView.classList.toggle('hidden', !showList);
+      mapView.classList.toggle('hidden', showList);
+    });
+  });
+
+  // ---------- 모바일: 마커 클릭 → 바텀시트 정보 갱신 및 펼침 ----------
+  const sheet = document.getElementById('bottom-sheet');
+  mapView.querySelectorAll('.marker').forEach(marker => {
+    marker.addEventListener('click', () => {
+      document.getElementById('sheet-name').textContent = marker.dataset.name;
+      document.getElementById('sheet-cat').textContent = marker.dataset.cat;
+      document.getElementById('sheet-rating').textContent = marker.dataset.rating;
+      document.getElementById('sheet-reviews').textContent = marker.dataset.reviews;
+      // 카카오맵 실시간 병합 데이터는 DB row가 없어 북마크·상세페이지가 불가능하다(hybrid-data-sourcing-strategy.md §3, §6) — 대신 제보를 유도한다.
+      const isKakao = marker.dataset.source === 'kakao';
+      document.getElementById('sheet-source-badge').classList.toggle('hidden', !isKakao);
+      document.getElementById('sheet-bookmark-btn').classList.toggle('hidden', isKakao);
+      const sheetCta = document.getElementById('sheet-cta');
+      sheetCta.href = isKakao ? 'report.html' : 'restaurant-detail.html';
+      sheetCta.textContent = isKakao ? '먹을지도에 제보하고 리뷰 남기기' : '상세 정보 보기';
+
+      const tagsWrap = document.getElementById('sheet-tags');
+      tagsWrap.innerHTML = '';
+      marker.dataset.tags.split(' ').filter(Boolean).forEach(tag => {
+        const span = document.createElement('span');
+        span.className = 'rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1';
+        span.textContent = tag;
+        tagsWrap.appendChild(span);
+      });
+
+      sheet.classList.remove('sheet-hidden', 'sheet-expanded');
+      sheet.classList.add('sheet-peek');
+    });
+  });
+
+  // ---------- 모바일: 바텀시트 핸들 펼침/접힘 전환 ----------
+  document.getElementById('sheet-handle').addEventListener('click', () => {
+    sheet.classList.toggle('sheet-peek');
+    sheet.classList.toggle('sheet-expanded');
+  });
+
+  // ---------- 데스크톱: 마커/리스트카드 클릭 → 지도 좌측 도킹 패널 갱신 및 노출 ----------
+  const desktopPanel = document.getElementById('desktop-panel');
+  function openDesktopPanel(data) {
+    document.getElementById('desktop-panel-name').textContent = data.name;
+    document.getElementById('desktop-panel-cat').textContent = data.cat;
+    document.getElementById('desktop-panel-rating').textContent = data.rating;
+    document.getElementById('desktop-panel-reviews').textContent = data.reviews;
+    // 카카오맵 실시간 병합 데이터는 DB row가 없어 북마크·상세페이지가 불가능하다(hybrid-data-sourcing-strategy.md §3, §6) — 대신 제보를 유도한다.
+    const isKakao = data.source === 'kakao';
+    document.getElementById('desktop-panel-source-badge').classList.toggle('hidden', !isKakao);
+    document.getElementById('desktop-panel-bookmark-btn').classList.toggle('hidden', isKakao);
+    const panelCta = document.getElementById('desktop-panel-cta');
+    panelCta.href = isKakao ? 'report.html' : 'restaurant-detail.html';
+    panelCta.textContent = isKakao ? '먹을지도에 제보하고 리뷰 남기기' : '상세 정보 보기';
+
+    const tagsWrap = document.getElementById('desktop-panel-tags');
+    tagsWrap.innerHTML = '';
+    data.tags.split(' ').filter(Boolean).forEach(tag => {
+      const span = document.createElement('span');
+      span.className = 'rounded-full bg-promo text-primary text-[12px] font-semibold px-2.5 py-1';
+      span.textContent = tag;
+      tagsWrap.appendChild(span);
+    });
+
+    desktopPanel.classList.remove('hidden');
+  }
+
+  document.querySelectorAll('.desktop-map .marker, .desktop-list-card').forEach(el => {
+    el.addEventListener('click', () => openDesktopPanel(el.dataset));
+  });
+
+  document.getElementById('desktop-panel-close').addEventListener('click', () => {
+    desktopPanel.classList.add('hidden');
+  });
+</script>
+
+</body>
+</html>

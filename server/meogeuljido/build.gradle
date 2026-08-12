@@ -1,0 +1,70 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.0'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.amugeona'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'org.postgresql:postgresql'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// JWT (Spring Security엔 발급/검증 로직이 내장되어 있지 않음)
+	implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
+	// PostGIS(geography) / JSONB 매핑 — db-schema.md
+	implementation 'org.hibernate.orm:hibernate-spatial' // 버전은 Spring Boot BOM이 관리(Hibernate 코어와 동일 버전으로 자동 정렬)
+	implementation 'io.hypersistence:hypersistence-utils-hibernate-70:3.15.3' // Hibernate 실제 버전과 안 맞으면 정확한 버전(예: -71/-73)으로 조정 필요, 최초 빌드 시 확인
+
+	// QueryDSL — 원본 com.querydsl은 2024-01 이후 릴리즈가 중단되어, 유지보수 중인 OpenFeign 포크를 사용
+	// 이 포크는 별도 classifier 없이 기본이 Jakarta EE(jakarta.*)이고, 어노테이션 프로세서만 "jpa" classifier로 지정한다.
+	implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.5'
+	annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.5:jpa'
+	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
+	// OpenAPI/Swagger 문서화
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
+
+	// 리뷰 작성 레이트리밋 (known-issues-risk-register.md P1 #3)
+	implementation 'com.bucket4j:bucket4j_jdk17-core:8.14.0' // 최신 버전은 Maven Central에서 재확인 권장
+	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-mail-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testCompileOnly 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

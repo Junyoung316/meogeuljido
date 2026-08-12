@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>먹을지도 · 공지사항 상세 화면 목업 (반응형)</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#FF6000', ink: '#222222', muted: '#A3A3A3', muted2: '#737373',
+          hairline: '#E5E5E5', promo: '#FCF4EE', navborder: '#D4D4D4',
+        },
+        fontFamily: { sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+</style>
+</head>
+<body class="bg-white">
+<div class="relative min-h-screen w-full bg-white flex flex-col">
+
+  <!-- ============ 모바일 전용 뒤로가기 헤더 (<1024px) ============ -->
+  <header class="lg:hidden shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-hairline">
+    <a href="notices.html" aria-label="뒤로가기" class="w-8 h-8 flex items-center justify-center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1 class="text-[16px] font-bold text-ink">공지사항</h1>
+    <div class="w-8"></div>
+  </header>
+
+  <!-- ============ 데스크톱 전용 사이트 헤더 (≥1024px) ============ -->
+  <header class="hidden lg:flex shrink-0 h-16 border-b border-hairline items-center justify-between px-6">
+    <div class="flex items-center gap-10">
+      <a href="index.html" class="flex items-center gap-1.5 text-ink font-extrabold text-[18px]">
+        <span class="text-primary">🍚</span> 먹을지도
+      </a>
+      <nav class="flex items-center gap-6 text-[14px] font-semibold">
+        <a href="index.html" class="flex items-center gap-1.5 text-muted2 hover:text-ink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          지도 홈
+        </a>
+        <a href="bookmarks.html" class="flex items-center gap-1.5 text-muted2 hover:text-ink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          즐겨찾기
+        </a>
+        <a href="mypage.html" class="flex items-center gap-1.5 text-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          내 정보
+        </a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="report.html" class="flex items-center gap-1.5 rounded-full bg-primary text-white text-[13px] font-bold px-4 py-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        식당 제보하기
+      </a>
+      <a href="login.html" class="rounded-full border border-navborder text-ink text-[13px] font-semibold px-4 py-2">로그인/회원가입</a>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto pb-8">
+    <div class="lg:max-w-2xl lg:mx-auto lg:px-6 lg:pt-8">
+      <a href="notices.html" class="hidden lg:inline-flex items-center gap-1 text-[13px] font-semibold text-muted2 hover:text-ink mb-4">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        공지사항 목록으로
+      </a>
+    <div class="px-5 pt-5 lg:px-0 lg:pt-0">
+      <span class="rounded-full bg-primary text-white text-[10px] font-bold px-2 py-1">공지</span>
+      <h1 class="text-[19px] font-bold text-ink mt-2.5 leading-snug">서버 정기 점검 안내 (8/15 새벽 2시~4시)</h1>
+      <p class="text-[12px] text-muted2 mt-1.5">2026.08.08</p>
+    </div>
+
+    <div class="h-px bg-hairline mt-4"></div>
+
+    <div class="px-5 pt-5 lg:px-0 text-[14px] text-ink leading-relaxed flex flex-col gap-4">
+      <p>안녕하세요, 먹을지도입니다.<br />
+      서비스 안정화를 위한 정기 점검이 아래와 같이 진행될 예정이니 이용에 참고 부탁드립니다.</p>
+
+      <p>
+        <span class="font-bold">점검 일시</span> 2026년 8월 15일(토) 02:00 ~ 04:00 (약 2시간)<br />
+        <span class="font-bold">점검 내용</span> 지도 검색 성능 개선 및 서버 인프라 점검
+      </p>
+
+      <p>점검 시간 동안에는 지도 검색, 리뷰 작성, 즐겨찾기 등 모든 기능 이용이 일시적으로 제한됩니다. 이용에 불편을 드려 죄송하며, 더 안정적인 서비스로 찾아뵙겠습니다.</p>
+
+      <p>감사합니다.</p>
+    </div>
+    </div>
+  </div>
+
+  <!-- 모바일 전용 하단 버튼: 데스크톱은 상단 "공지사항 목록으로" 링크로 대체 -->
+  <div class="lg:hidden shrink-0 px-5 py-4 border-t border-hairline">
+    <a href="notices.html" class="flex items-center justify-center w-full rounded-xl border border-hairline text-ink text-[14px] font-bold py-3">
+      목록으로
+    </a>
+  </div>
+</div>
+</body>
+</html>

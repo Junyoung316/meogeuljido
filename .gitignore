@@ -1,0 +1,8 @@
+.env
+.DS_Store
+.idea
+
+docs
+.claude
+CLAUDE.md
+DESIGN.md

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>먹을지도 Admin · 공지사항·FAQ 관리 화면 목업</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#FF6000', ink: '#222222', muted: '#A3A3A3', muted2: '#737373',
+          hairline: '#E5E5E5', promo: '#FCF4EE', navborder: '#D4D4D4',
+        },
+        fontFamily: { sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+  .tab-btn[aria-pressed="true"] { border-color: #FF6000; color: #FF6000; }
+</style>
+</head>
+<body class="bg-neutral-50">
+<div class="min-h-screen flex">
+
+  <!-- ============ 사이드바 ============ -->
+  <aside class="w-60 shrink-0 bg-white border-r border-hairline flex flex-col">
+    <div class="px-5 py-5 border-b border-hairline">
+      <a href="admin-restaurants.html" class="flex items-center gap-1.5 text-ink font-extrabold text-[17px]">
+        <span class="text-primary">🍚</span> 먹을지도 <span class="text-muted2 font-semibold text-[13px]">Admin</span>
+      </a>
+    </div>
+    <nav class="flex-1 px-3 py-4 flex flex-col gap-1 text-[14px] font-semibold">
+      <a href="admin-restaurants.html" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-muted2 hover:bg-neutral-50">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1-5h16l1 5M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M9 21v-6h6v6"/></svg>
+        식당 관리
+      </a>
+      <a href="admin-reviews.html" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-muted2 hover:bg-neutral-50">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        리뷰 모니터링
+      </a>
+      <a href="admin-logs.html" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-muted2 hover:bg-neutral-50">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        활동 로그
+      </a>
+      <a href="admin-notices.html" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 bg-promo text-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-7-4 18-6-8-8-3z"/></svg>
+        공지·FAQ 관리
+      </a>
+      <a href="admin-inquiries.html" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-muted2 hover:bg-neutral-50">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        1:1문의 관리
+      </a>
+    </nav>
+    <div class="px-3 py-4 border-t border-hairline">
+      <a href="index.html" class="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-muted2 hover:text-ink">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        사용자 화면으로
+      </a>
+    </div>
+  </aside>
+
+  <!-- ============ 컨텐츠 ============ -->
+  <div class="flex-1 min-w-0 flex flex-col">
+    <header class="h-16 shrink-0 border-b border-hairline flex items-center justify-between px-8 bg-white">
+      <h1 class="text-[18px] font-bold text-ink">공지사항·FAQ 관리</h1>
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-promo flex items-center justify-center text-[12px] font-bold text-primary">관</div>
+        <span class="text-[13px] font-semibold text-ink">관리자</span>
+        <a href="login.html" class="text-[12px] text-muted2 font-medium ml-2">로그아웃</a>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6">
+      <div class="max-w-6xl mx-auto">
+
+        <!-- 탭 -->
+        <div class="flex items-center gap-6 border-b border-hairline">
+          <button id="tab-notice" class="tab-btn pb-3 text-[14px] font-bold border-b-2 border-primary text-primary" aria-pressed="true">공지사항</button>
+          <button id="tab-faq" class="tab-btn pb-3 text-[14px] font-bold border-b-2 border-transparent text-muted2" aria-pressed="false">FAQ</button>
+        </div>
+
+        <!-- 공지사항 패널 -->
+        <div id="panel-notice" class="mt-5">
+          <div class="flex items-center justify-between">
+            <p class="text-[13px] text-muted2">전체 6건</p>
+            <button id="new-notice-btn" class="rounded-xl bg-primary text-white text-[13px] font-bold px-4 py-2.5">+ 새 공지 작성</button>
+          </div>
+
+          <!-- 인라인 작성 폼 -->
+          <div id="new-notice-form" class="hidden mt-4 bg-white rounded-2xl border border-hairline p-5 flex flex-col gap-3">
+            <div class="grid grid-cols-3 gap-3">
+              <input type="text" placeholder="제목" class="col-span-2 rounded-xl border border-hairline px-3.5 py-2.5 text-[14px] outline-none focus:border-primary" />
+              <select class="rounded-xl border border-hairline px-3.5 py-2.5 text-[14px] text-ink outline-none focus:border-primary">
+                <option>시스템</option>
+                <option>업데이트</option>
+                <option>이벤트</option>
+              </select>
+            </div>
+            <textarea rows="4" placeholder="공지 내용을 입력하세요" class="rounded-xl border border-hairline p-3.5 text-[14px] outline-none focus:border-primary resize-none"></textarea>
+            <div class="flex justify-end gap-2">
+              <button class="cancel-form-btn rounded-xl border border-hairline text-ink text-[13px] font-bold px-4 py-2">취소</button>
+              <button class="rounded-xl bg-primary text-white text-[13px] font-bold px-4 py-2">게시하기</button>
+            </div>
+          </div>
+
+          <div class="mt-4 bg-white rounded-2xl border border-hairline overflow-hidden">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-hairline text-[12px] text-muted2 font-semibold">
+                  <th class="px-5 py-3">제목</th>
+                  <th class="px-5 py-3">카테고리</th>
+                  <th class="px-5 py-3">게시일</th>
+                  <th class="px-5 py-3">상태</th>
+                  <th class="px-5 py-3">액션</th>
+                </tr>
+              </thead>
+              <tbody class="text-[13px] text-ink">
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">추석 연휴 고객센터 운영 안내</td>
+                  <td class="px-5 py-3 text-muted2">시스템</td>
+                  <td class="px-5 py-3 text-muted2">2026.08.10</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">서버 정기 점검 안내 (8/15 새벽 2시~4시)</td>
+                  <td class="px-5 py-3 text-muted2">시스템</td>
+                  <td class="px-5 py-3 text-muted2">2026.08.08</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">'아무거나 추천' 기능이 새로 생겼어요</td>
+                  <td class="px-5 py-3 text-muted2">업데이트</td>
+                  <td class="px-5 py-3 text-muted2">2026.08.01</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">추석 이벤트 당첨자 발표 (임시저장)</td>
+                  <td class="px-5 py-3 text-muted2">이벤트</td>
+                  <td class="px-5 py-3 text-muted2">-</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-neutral-100 text-muted2 text-[11px] font-bold px-2.5 py-1">임시저장</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">개인정보 처리방침 개정 안내</td>
+                  <td class="px-5 py-3 text-muted2">시스템</td>
+                  <td class="px-5 py-3 text-muted2">2026.07.15</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr>
+                  <td class="px-5 py-3 font-semibold">먹을지도 서비스를 시작합니다</td>
+                  <td class="px-5 py-3 text-muted2">시스템</td>
+                  <td class="px-5 py-3 text-muted2">2026.07.02</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- FAQ 패널 -->
+        <div id="panel-faq" class="hidden mt-5">
+          <div class="flex items-center justify-between">
+            <p class="text-[13px] text-muted2">전체 8건</p>
+            <button id="new-faq-btn" class="rounded-xl bg-primary text-white text-[13px] font-bold px-4 py-2.5">+ 새 FAQ 작성</button>
+          </div>
+
+          <!-- 인라인 작성 폼 -->
+          <div id="new-faq-form" class="hidden mt-4 bg-white rounded-2xl border border-hairline p-5 flex flex-col gap-3">
+            <div class="grid grid-cols-3 gap-3">
+              <input type="text" placeholder="질문" class="col-span-2 rounded-xl border border-hairline px-3.5 py-2.5 text-[14px] outline-none focus:border-primary" />
+              <select class="rounded-xl border border-hairline px-3.5 py-2.5 text-[14px] text-ink outline-none focus:border-primary">
+                <option>이용방법</option>
+                <option>계정</option>
+                <option>제보·리뷰</option>
+                <option>기타</option>
+              </select>
+            </div>
+            <textarea rows="4" placeholder="답변 내용을 입력하세요" class="rounded-xl border border-hairline p-3.5 text-[14px] outline-none focus:border-primary resize-none"></textarea>
+            <div class="flex justify-end gap-2">
+              <button class="cancel-form-btn rounded-xl border border-hairline text-ink text-[13px] font-bold px-4 py-2">취소</button>
+              <button class="rounded-xl bg-primary text-white text-[13px] font-bold px-4 py-2">게시하기</button>
+            </div>
+          </div>
+
+          <div class="mt-4 bg-white rounded-2xl border border-hairline overflow-hidden">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-hairline text-[12px] text-muted2 font-semibold">
+                  <th class="px-5 py-3">질문</th>
+                  <th class="px-5 py-3">카테고리</th>
+                  <th class="px-5 py-3">게시일</th>
+                  <th class="px-5 py-3">상태</th>
+                  <th class="px-5 py-3">액션</th>
+                </tr>
+              </thead>
+              <tbody class="text-[13px] text-ink">
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">'아무거나 추천'은 어떻게 이용하나요?</td>
+                  <td class="px-5 py-3 text-muted2">이용방법</td>
+                  <td class="px-5 py-3 text-muted2">2026.07.02</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">비밀번호를 잊어버렸어요</td>
+                  <td class="px-5 py-3 text-muted2">계정</td>
+                  <td class="px-5 py-3 text-muted2">2026.07.02</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr class="border-b border-hairline">
+                  <td class="px-5 py-3 font-semibold">식당은 어떻게 등록(제보)하나요?</td>
+                  <td class="px-5 py-3 text-muted2">제보·리뷰</td>
+                  <td class="px-5 py-3 text-muted2">2026.07.02</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-promo text-primary text-[11px] font-bold px-2.5 py-1">게시중</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+                <tr>
+                  <td class="px-5 py-3 font-semibold">단체 예약 기능은 언제 생기나요? (검토중)</td>
+                  <td class="px-5 py-3 text-muted2">기타</td>
+                  <td class="px-5 py-3 text-muted2">-</td>
+                  <td class="px-5 py-3"><span class="rounded-full bg-neutral-100 text-muted2 text-[11px] font-bold px-2.5 py-1">임시저장</span></td>
+                  <td class="px-5 py-3 flex gap-3"><a href="#" class="text-primary font-semibold">수정</a><a href="#" class="text-red-600 font-semibold">삭제</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const tabNotice = document.getElementById('tab-notice');
+  const tabFaq = document.getElementById('tab-faq');
+  const panelNotice = document.getElementById('panel-notice');
+  const panelFaq = document.getElementById('panel-faq');
+
+  function setTab(active) {
+    const isNotice = active === 'notice';
+    tabNotice.setAttribute('aria-pressed', String(isNotice));
+    tabFaq.setAttribute('aria-pressed', String(!isNotice));
+    tabNotice.classList.toggle('border-primary', isNotice);
+    tabNotice.classList.toggle('text-primary', isNotice);
+    tabNotice.classList.toggle('border-transparent', !isNotice);
+    tabNotice.classList.toggle('text-muted2', !isNotice);
+    tabFaq.classList.toggle('border-primary', !isNotice);
+    tabFaq.classList.toggle('text-primary', !isNotice);
+    tabFaq.classList.toggle('border-transparent', isNotice);
+    tabFaq.classList.toggle('text-muted2', isNotice);
+    panelNotice.classList.toggle('hidden', !isNotice);
+    panelFaq.classList.toggle('hidden', isNotice);
+  }
+  tabNotice.addEventListener('click', () => setTab('notice'));
+  tabFaq.addEventListener('click', () => setTab('faq'));
+
+  // ---------- 인라인 작성 폼 토글 ----------
+  document.getElementById('new-notice-btn').addEventListener('click', () => {
+    document.getElementById('new-notice-form').classList.remove('hidden');
+  });
+  document.getElementById('new-faq-btn').addEventListener('click', () => {
+    document.getElementById('new-faq-form').classList.remove('hidden');
+  });
+  document.querySelectorAll('.cancel-form-btn').forEach(btn => {
+    btn.addEventListener('click', () => btn.closest('[id$="-form"]').classList.add('hidden'));
+  });
+</script>
+</body>
+</html>

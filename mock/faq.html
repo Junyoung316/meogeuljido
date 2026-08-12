@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>먹을지도 · 자주 묻는 질문 화면 목업 (반응형)</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#FF6000', ink: '#222222', muted: '#A3A3A3', muted2: '#737373',
+          hairline: '#E5E5E5', promo: '#FCF4EE', navborder: '#D4D4D4',
+        },
+        fontFamily: { sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'system-ui', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .cat-chip[aria-pressed="true"] { background-color: #222222; color: #fff; border-color: #222222; }
+  .faq-item[aria-expanded="true"] .faq-chevron { transform: rotate(180deg); }
+  .faq-item[aria-expanded="true"] .faq-answer { max-height: 400px; padding-top: 0.75rem; }
+  .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; }
+</style>
+</head>
+<body class="bg-white">
+<div class="relative min-h-screen w-full bg-white flex flex-col">
+
+  <!-- ============ 모바일 전용 뒤로가기 헤더 (<1024px) ============ -->
+  <header class="lg:hidden shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-hairline">
+    <a href="mypage.html" aria-label="뒤로가기" class="w-8 h-8 flex items-center justify-center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <h1 class="text-[16px] font-bold text-ink">자주 묻는 질문</h1>
+    <div class="w-8"></div>
+  </header>
+
+  <!-- ============ 데스크톱 전용 사이트 헤더 (≥1024px) ============ -->
+  <header class="hidden lg:flex shrink-0 h-16 border-b border-hairline items-center justify-between px-6">
+    <div class="flex items-center gap-10">
+      <a href="index.html" class="flex items-center gap-1.5 text-ink font-extrabold text-[18px]">
+        <span class="text-primary">🍚</span> 먹을지도
+      </a>
+      <nav class="flex items-center gap-6 text-[14px] font-semibold">
+        <a href="index.html" class="flex items-center gap-1.5 text-muted2 hover:text-ink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          지도 홈
+        </a>
+        <a href="bookmarks.html" class="flex items-center gap-1.5 text-muted2 hover:text-ink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          즐겨찾기
+        </a>
+        <a href="mypage.html" class="flex items-center gap-1.5 text-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          내 정보
+        </a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="report.html" class="flex items-center gap-1.5 rounded-full bg-primary text-white text-[13px] font-bold px-4 py-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        식당 제보하기
+      </a>
+      <a href="login.html" class="rounded-full border border-navborder text-ink text-[13px] font-semibold px-4 py-2">로그인/회원가입</a>
+    </div>
+  </header>
+
+  <div class="hidden lg:block lg:max-w-2xl lg:mx-auto lg:px-6 lg:pt-8 lg:w-full">
+    <a href="mypage.html" class="inline-flex items-center gap-1 text-[13px] font-semibold text-muted2 hover:text-ink mb-4">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      마이페이지로
+    </a>
+    <h1 class="text-[22px] font-bold text-ink mb-2">자주 묻는 질문</h1>
+  </div>
+
+  <!-- 카테고리 필터 -->
+  <div class="shrink-0 flex items-center gap-2 overflow-x-auto no-scrollbar px-4 lg:max-w-2xl lg:mx-auto lg:w-full lg:px-6 py-3 border-b border-hairline" id="faq-category-row">
+    <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="true">전체</button>
+    <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false" data-cat="이용방법">이용방법</button>
+    <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false" data-cat="계정">계정</button>
+    <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false" data-cat="제보리뷰">제보·리뷰</button>
+    <button class="cat-chip shrink-0 rounded-full border border-navborder bg-white px-4 py-1.5 text-[13px] font-semibold text-ink" aria-pressed="false" data-cat="기타">기타</button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto pb-8">
+    <div class="lg:max-w-2xl lg:mx-auto lg:px-6">
+    <div class="flex flex-col" id="faq-list">
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="이용방법" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">'아무거나 추천'은 어떻게 이용하나요?</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">지도 상단의 '오늘 뭐 먹지? 아무거나 추천받기' 버튼을 눌러 원하는 태그를 선택하면, 현재 위치 반경 1km 이내에서 조건에 맞는 식당을 추천해드려요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="이용방법" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">지도와 리스트 뷰는 어떻게 전환하나요?</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">화면 하단의 지도/목록 토글 버튼을 눌러 언제든 전환할 수 있어요. 목록 뷰에서는 거리순, 평점순으로 정렬해서 볼 수 있어요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="계정" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">비밀번호를 잊어버렸어요</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">로그인 화면의 '비밀번호를 잊으셨나요?'를 눌러 가입한 이메일로 인증코드를 받아 새 비밀번호로 재설정할 수 있어요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="계정" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">회원 탈퇴 시 내 정보는 어떻게 되나요?</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">탈퇴 즉시 작성하신 리뷰와 즐겨찾기는 마이페이지에서 보이지 않으며, 30일간 동일 이메일로 재가입이 제한돼요. 자세한 내용은 마이페이지 &gt; 회원 탈퇴 화면에서 확인하실 수 있어요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="제보리뷰" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">식당은 어떻게 등록(제보)하나요?</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">지도 화면 우측 하단의 + 버튼을 눌러 상호명, 위치, 카테고리, 영업시간 등을 입력하면 돼요. 동일 위치에 유사한 상호명이 있으면 중복 등록이 자동으로 제한돼요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="제보리뷰" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">리뷰를 잘못 썼는데 수정할 수 있나요?</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">본인이 작성한 리뷰는 식당 상세 화면에서 언제든 수정하거나 삭제할 수 있어요. 다른 사용자의 리뷰는 수정할 수 없어요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4 border-b border-hairline" data-cat="제보리뷰" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">즐겨찾기는 몇 개까지 저장할 수 있나요?</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">개수 제한 없이 원하는 만큼 즐겨찾기에 저장할 수 있어요. 저장한 식당은 마이페이지 &gt; 즐겨찾기에서 모아볼 수 있어요.</div>
+      </button>
+
+      <button class="faq-item w-full text-left px-5 py-4" data-cat="기타" aria-expanded="false">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[14px] font-bold text-ink">원하는 답을 못 찾았어요</span>
+          <svg class="faq-chevron shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A3A3A3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="faq-answer text-[13px] text-muted2 leading-relaxed">마이페이지의 1:1 문의를 통해 궁금한 점을 남겨주시면 확인 후 답변드릴게요.</div>
+      </button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- 카테고리 필터: 단일 선택 ----------
+  const catButtons = [...document.querySelectorAll('#faq-category-row .cat-chip')];
+  const faqItems = [...document.querySelectorAll('.faq-item')];
+
+  catButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      catButtons.forEach(b => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+
+      const selected = btn.dataset.cat;
+      faqItems.forEach(item => {
+        const show = !selected || item.dataset.cat === selected;
+        item.classList.toggle('hidden', !show);
+      });
+    });
+  });
+
+  // ---------- 아코디언 펼침/접힘 ----------
+  faqItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const expanded = item.getAttribute('aria-expanded') === 'true';
+      item.setAttribute('aria-expanded', String(!expanded));
+    });
+  });
+</script>
+</body>
+</html>
