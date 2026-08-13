@@ -104,4 +104,3 @@ npm run dev
 
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - OpenAPI 스펙(JSON): `http://localhost:8080/v3/api-docs`
-````
