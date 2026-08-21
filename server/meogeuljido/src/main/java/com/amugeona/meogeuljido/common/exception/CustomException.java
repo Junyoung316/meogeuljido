@@ -1,7 +1,19 @@
 package com.amugeona.meogeuljido.common.exception;
 
+import lombok.Getter;
+
+@Getter
 public class CustomException extends RuntimeException {
-    public CustomException(String message) {
+
+    private final ErrorCode errorCode;
+
+    public CustomException(ErrorCode errorCode) {
+        super(errorCode.getDefaultMessage());
+        this.errorCode = errorCode;
+    }
+
+    public CustomException(ErrorCode errorCode, String message) {
         super(message);
+        this.errorCode = errorCode;
     }
 }
