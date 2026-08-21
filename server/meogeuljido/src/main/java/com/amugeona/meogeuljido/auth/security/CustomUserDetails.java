@@ -1,4 +1,4 @@
-package com.amugeona.meogeuljido.common.security;
+package com.amugeona.meogeuljido.auth.security;
 
 public class CustomUserDetails {
 }
