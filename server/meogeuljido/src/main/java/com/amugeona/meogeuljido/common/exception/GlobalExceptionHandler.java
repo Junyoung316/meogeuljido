@@ -3,6 +3,7 @@ package com.amugeona.meogeuljido.common.exception;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -28,8 +30,22 @@ public class GlobalExceptionHandler {
                 .map(fe -> new ErrorResponse.FieldErrorDetail(fe.getField(), fe.getDefaultMessage()))
                 .toList();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR.name(),
-                        ErrorCode.VALIDATION_ERROR.getDefaultMessage(), fieldErrors));
+                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR, fieldErrors));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException e) {
+        return ResponseEntity.status(ErrorCode.NOT_FOUND.getStatus())
+                .body(ErrorResponse.of(ErrorCode.NOT_FOUND));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
+        List<ErrorResponse.FieldErrorDetail> fieldErrors = e.getConstraintViolations().stream()
+                .map(cv -> new ErrorResponse.FieldErrorDetail(cv.getPropertyPath().toString(), cv.getMessage()))
+                .toList();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR, fieldErrors));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -57,6 +73,10 @@ public class GlobalExceptionHandler {
 
         public static ErrorResponse of(ErrorCode errorCode) {
             return of(errorCode.name(), errorCode.getDefaultMessage(), null);
+        }
+
+        public static ErrorResponse of(ErrorCode errorCode, List<FieldErrorDetail> fieldErrors) {
+            return of(errorCode.name(), errorCode.getDefaultMessage(), fieldErrors);
         }
 
         public record FieldErrorDetail(String field, String reason) {
