@@ -7,6 +7,8 @@
 # 그래서 images_data 자체를 건드리지 않고, 서비스가 참조하는 볼륨을 별도 named volume으로 바꾼다.
 services:
   backend:
+    ports:
+      - "8080:8080"
     volumes:
       - local_uploads:/app/uploads
   nginx:

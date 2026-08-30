@@ -9,7 +9,8 @@ services:
       - certbot_conf:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
   backend:
@@ -30,7 +31,7 @@ services:
       retries: 5
 
   postgres:
-    image: imresamu/postgis:16-3.6-bookworm
+    image: imresamu/postgis:16-3.6-bookworm@sha256:74377ef202667cf7ec0d3e03699e43f037f1773323fc6a60445041eb821ffa10
     env_file: .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -56,6 +57,12 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
 
 volumes:
   postgres_data:
