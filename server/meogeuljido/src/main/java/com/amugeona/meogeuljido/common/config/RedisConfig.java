@@ -19,6 +19,7 @@ public class RedisConfig {
         var jsonSerializer = GenericJacksonJsonRedisSerializer.builder()
                         .enableDefaultTyping(BasicPolymorphicTypeValidator.builder()
                                 .allowIfSubType("com.amugeona.meogeuljido.")
+                                .allowIfSubType("java.util.")
                                 .build())
                 .build();
         template.setValueSerializer(jsonSerializer);
