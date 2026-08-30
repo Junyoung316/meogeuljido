@@ -27,9 +27,9 @@ public class BaseEntity {
 
     @CreatedBy
     @Column(name = "created_by", nullable = false, updatable = false)
-    private String createdBy;
+    private Long createdBy;
 
     @LastModifiedBy
     @Column(name = "updated_by", nullable = false)
-    private String updatedBy;
+    private Long updatedBy;
 }
