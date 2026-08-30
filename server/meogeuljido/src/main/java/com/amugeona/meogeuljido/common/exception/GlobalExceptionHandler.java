@@ -26,11 +26,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
-        List<ErrorResponse.FieldErrorDetail> fieldErrors = e.getBindingResult().getFieldErrors().stream()
-                .map(fe -> new ErrorResponse.FieldErrorDetail(fe.getField(), fe.getDefaultMessage()))
-                .toList();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR, fieldErrors));
+        return badRequest(e.getBindingResult().getFieldErrors().stream()
+                .map(fe -> new ErrorResponse.FieldErrorDetail(fe.getField(),
+                        fe.getDefaultMessage()))
+                .toList());
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -41,11 +40,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
-        List<ErrorResponse.FieldErrorDetail> fieldErrors = e.getConstraintViolations().stream()
-                .map(cv -> new ErrorResponse.FieldErrorDetail(cv.getPropertyPath().toString(), cv.getMessage()))
-                .toList();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR, fieldErrors));
+        return badRequest(e.getConstraintViolations().stream()
+                .map(cv -> new ErrorResponse.FieldErrorDetail(cv.getPropertyPath().toString(),
+                        cv.getMessage()))
+                .toList());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -59,6 +57,11 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR));
+    }
+
+    private ResponseEntity<ErrorResponse> badRequest(List<ErrorResponse.FieldErrorDetail> fieldErrors) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR, fieldErrors));
     }
 
     public record ErrorResponse(
