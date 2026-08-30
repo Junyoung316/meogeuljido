@@ -35,7 +35,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     # 개발환경(WSL2/macOS)에서만 Tailscale 인터페이스 IP로 바인딩해 DB Tool 접속을 허용한다.
-    # 운영 서버에서는 이 ports 매핑 자체를 제거하고 완전히 내부망으로만 둔다. (infra-design.md §2.2)
+    # 운영 서버에서는 이 ports 매핑 자체를 제거하고 완전히 내부망으로만 둔다.
     ports:
       - "${TAILSCALE_IP:-127.0.0.1}:5432:5432"
     healthcheck:
