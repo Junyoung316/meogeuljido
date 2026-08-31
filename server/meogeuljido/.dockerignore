@@ -1,0 +1,8 @@
+# server/meogeuljido/.dockerignore
+build/
+.gradle/
+bin/
+out/
+*.log
+.idea/
+*.iml

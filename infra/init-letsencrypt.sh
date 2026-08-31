@@ -1,12 +1,13 @@
+#!/usr/bin/env bash
 # 최초 배포 1회만 실행. 이후에는 docker-compose.yml의 certbot 서비스가 갱신을 담당한다 (infra-design.md §4).
 set -euo pipefail
 
 DOMAIN="meogeuljido.example.com"
 DATA_PATH="./infra/certbot-init"
 
-# 1. nginx가 시작할 수 있도록 더미 인증서를 먼저 생성한다.
-mkdir -p "$DATA_PATH/conf/live/$DOMAIN"
+# 1. nginx가 시작할 수 있도록 더미 인증서를 컨테이너 내부(certbot_conf 볼륨)에 먼저 생성한다.
 docker compose run --rm --entrypoint "\
+  mkdir -p '/etc/letsencrypt/live/$DOMAIN' && \
   openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
     -keyout '/etc/letsencrypt/live/$DOMAIN/privkey.pem' \
     -out '/etc/letsencrypt/live/$DOMAIN/fullchain.pem' \

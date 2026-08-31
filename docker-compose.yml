@@ -34,7 +34,7 @@ services:
       retries: 5
 
   postgres:
-    image: imresamu/postgis:16-3.6-bookworm@sha256:74377ef202667cf7ec0d3e03699e43f037f1773323fc6a60445041eb821ffa10
+    image: ${POSTGIS_IMAGE}
     env_file: .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -52,6 +52,8 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass ${REDIS_PASSWORD} --save 300 10
+    ports:
+      - "${TAILSCALE_IP:-127.0.0.1}:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:

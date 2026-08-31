@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: { node-version: 20, cache: 'npm', cache-dependency-path: front/meogeuljido/package-lock.json }
       - working-directory: front/meogeuljido
         run: |
           npm ci
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: imresamu/postgis:16-3.6-bookworm@sha256:74377ef202667cf7ec0d3e03699e43f037f1773323fc6a60445041eb821ffa10
+        image: ${{ vars.POSTGIS_IMAGE }}
         env:
           POSTGRES_USER: meogeuljido
           POSTGRES_PASSWORD: ci_test_password
@@ -52,6 +52,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 21 }
+        with: { distribution: temurin, java-version: 21, cache: 'gradle' }
       - working-directory: server/meogeuljido
         run: ./gradlew build
