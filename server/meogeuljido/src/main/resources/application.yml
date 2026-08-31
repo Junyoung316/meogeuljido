@@ -6,7 +6,7 @@ spring:
     time-zone: Asia/Seoul
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:meogeuljido}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:5432/${POSTGRES_DB:meogeuljido}
     username: ${POSTGRES_USER:meogeuljido}
     password: ${POSTGRES_PASSWORD:dev_local_only_password}
 
@@ -17,7 +17,7 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST:localhost}
       port: 6379
       password: ${REDIS_PASSWORD:dev_local_only_password}
 

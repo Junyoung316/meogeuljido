@@ -1,0 +1,22 @@
+# 로컬 개발 전용 — NAS 접속 정보를 담지 않으므로 git 추적해도 무방
+# NAS가 WSL2 네트워크에서 확인되면 이 파일을 제거(또는 이름 변경)해
+# docker-compose.yml 원본의 CIFS images_data 마운트로 되돌려 검증한다 (docs/infra-design.md §7.1).
+#
+# 주의: 최상위 `volumes.images_data`를 그대로 오버라이드하면 Compose가 driver_opts를
+# 딥 머지해 base의 CIFS 옵션(type: cifs 등)이 남아있어 마운트가 여전히 실패한다.
+# 그래서 images_data 자체를 건드리지 않고, 서비스가 참조하는 볼륨을 별도 named volume으로 바꾼다.
+services:
+  backend:
+    ports:
+      - "8080:8080"
+    volumes:
+      - local_uploads:/app/uploads
+  nginx:
+    volumes:
+      - local_uploads:/usr/share/nginx/uploads:ro
+      - ./infra/nginx/conf.d.local/meogeuljido.local.conf:/etc/nginx/conf.d/meogeuljido.conf:ro
+      - ./infra/nginx/certs-local:/etc/nginx/certs-local:ro
+
+volumes:
+  local_uploads:
+    driver: local
