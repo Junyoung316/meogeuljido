@@ -14,6 +14,8 @@ services:
   nginx:
     volumes:
       - local_uploads:/usr/share/nginx/uploads:ro
+      - ./infra/nginx/conf.d.local/meogeuljido.local.conf:/etc/nginx/conf.d/meogeuljido.conf:ro
+      - ./infra/nginx/certs-local:/etc/nginx/certs-local:ro
 
 volumes:
   local_uploads:

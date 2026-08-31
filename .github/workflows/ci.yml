@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: imresamu/postgis:16-3.6-bookworm
+        image: imresamu/postgis:16-3.6-bookworm@sha256:74377ef202667cf7ec0d3e03699e43f037f1773323fc6a60445041eb821ffa10
         env:
           POSTGRES_USER: meogeuljido
           POSTGRES_PASSWORD: ci_test_password
@@ -48,6 +48,7 @@ jobs:
       POSTGRES_PASSWORD: ci_test_password
       POSTGRES_DB: meogeuljido
       REDIS_PASSWORD: ""
+      JWT_SECRET: ci_test_jwt_secret_key_do_not_use_in_production_min_32_bytes
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

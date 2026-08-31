@@ -6,3 +6,5 @@ docs
 .claude
 CLAUDE.md
 DESIGN.md
+
+infra/nginx/certs-local/
