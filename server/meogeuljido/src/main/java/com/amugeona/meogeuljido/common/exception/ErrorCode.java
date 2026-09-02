@@ -15,9 +15,11 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
 
     // 인증/회원
+    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
     CODE_MISMATCH(HttpStatus.UNAUTHORIZED, "인증코드가 일치하지 않습니다."),
     EMAIL_NOT_VERIFIED(HttpStatus.UNAUTHORIZED, "이메일 인증이 완료되지 않았습니다."),
+    WITHDRAWAL_REASON_DETAIL_REQUIRED(HttpStatus.BAD_REQUEST, "기타 사유를 선택한 경우 상세 사유를 입력해야 합니다."),
 
     // 식당
     RESTAURANT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않거나 접근할 수 없는 식당입니다."),
