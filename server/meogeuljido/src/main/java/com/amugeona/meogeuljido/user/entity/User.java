@@ -86,7 +86,12 @@ public class User {
     }
 
     /**
-     * 로그인 성공 시 auth가 호출, 대기 중인 자진 탈퇴 요청이 있다면 함께 취소
+     * 이 메서드를 직접 호출하지 말것. auth 도메인의 로그인 성공 처리는 반드
+     * {@link com.amugeona.meogeuljido.user.service.UserService#recordLogAndCancelPendingWithdrawal}을
+     * 통해서만 호출 - 이 메서드는 User 엔티티 상태만 초기화
+     * user_withdrawal_requests 테이블의 "진행 중" 행을 취소 처리하지 않음
+     * 직접 호출하면 진행 중 상태로 남아 uq_user_withdrawal_requests_pending 제약으로 인해
+     * 해당 유저의 탈퇴 요청 자체가 막힘
      */
     public void recordLogin() {
         this.lastLoginAt = OffsetDateTime.now();

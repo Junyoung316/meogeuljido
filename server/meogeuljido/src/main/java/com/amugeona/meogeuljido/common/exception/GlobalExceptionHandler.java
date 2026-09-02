@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -38,6 +39,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException e) {
         return ResponseEntity.status(ErrorCode.NOT_FOUND.getStatus())
                 .body(ErrorResponse.of(ErrorCode.NOT_FOUND));
+    }
+
+    /**
+     * 요청 바디 JSON 파싱 실패(문법 오류, enum에 정의되지 않은 값 등)를 400으로 매핑
+     * @Valid는 파싱이 성공해야 실행되므로, 파싱 자체가 실패하는 이 경우는 별도의 핸들러가 필요
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        log.warn("Malformed request body: {}", e.getMessage());
+        return ResponseEntity.status(ErrorCode.VALIDATION_ERROR.getStatus())
+                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

@@ -39,14 +39,14 @@ public class UserService {
     }
 
     public boolean isNicknameAvailable(String nickname) {
-        return !userRepository.existsByNickname(nickname);
+        return !userRepository.existsByNicknameIgnoreCase(nickname);
     }
 
     @Transactional
     public UserResponse updateNickname(Long userId, UserUpdateRequest request) {
         User user = getActiveUserOrThrow(userId);
         String previousNickname = user.getNickname();
-        if (!request.nickname().equals(previousNickname) && userRepository.existsByNickname(request.nickname())) {
+        if (!request.nickname().equalsIgnoreCase(previousNickname) && userRepository.existsByNicknameIgnoreCase(request.nickname())) {
             throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
         }
         user.changeNickname(request.nickname());
