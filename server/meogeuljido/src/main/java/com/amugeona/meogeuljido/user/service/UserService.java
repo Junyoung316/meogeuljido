@@ -71,13 +71,16 @@ public class UserService {
         if (request.reasonCategory() == WithdrawalReasonCategory.OTHER && (request.reasonDetail() == null || request.reasonDetail().isBlank())) {
             throw new CustomException(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED);
         }
+        if (userWithdrawalRequestRepository.findByUserIdAndCancelledAtIsNullAndFinalizedAtIsNull(userId).isPresent()) {
+            throw new CustomException(ErrorCode.CONFLICT);
+        }
         user.requestWithdrawal();
         userWithdrawalRequestRepository.save(
                 UserWithdrawalRequest.create(userId, request.reasonCategory(), request.reasonDetail())
         );
 
         eventPublisher.publishEvent(new AuditLogEvent(
-           userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정 · 사유: %s %s".formatted(WITHDRAWAL_GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())), Instant.now()
+           userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WITHDRAWAL_GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()
         ));
 
         // TODO(auth 도메인 구현 후 연동): 유예기간 중에도 이후 요청부터는 로그인/토큰 재발급을

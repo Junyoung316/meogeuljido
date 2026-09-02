@@ -91,6 +91,7 @@ public class User {
     public void recordLogin() {
         this.lastLoginAt = OffsetDateTime.now();
         this.withdrawalRequestedAt = null;
+        this.dormantWarningSentAt = null;
     }
 
     /**
