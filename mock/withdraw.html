@@ -56,8 +56,8 @@
         <ul class="flex flex-col gap-2 text-[13px] text-ink leading-relaxed">
           <li class="flex gap-2"><span class="text-muted2">·</span>작성한 리뷰와 즐겨찾기는 더 이상 마이페이지에서 보이지 않아요</li>
           <li class="flex gap-2"><span class="text-muted2">·</span>등록한 식당 정보는 다른 사용자를 위해 서비스에 계속 남아요</li>
-          <li class="flex gap-2"><span class="text-muted2">·</span>탈퇴 후 30일간 동일한 이메일로 재가입이 제한돼요</li>
           <li class="flex gap-2"><span class="text-muted2">·</span>법령에 따라 일부 기록은 일정 기간 보관 후 파기돼요</li>
+          <li class="flex gap-2"><span class="text-muted2">·</span>탈퇴 신청 후 <b class="text-ink">7일간의 유예기간</b>을 거쳐 실제로 탈퇴돼요. 그 전에 로그인하면 탈퇴 신청이 자동으로 취소돼요</li>
         </ul>
       </div>
 
@@ -65,11 +65,13 @@
       <div>
         <label class="text-[13px] font-bold text-ink">탈퇴하시는 이유를 알려주세요</label>
         <div class="mt-2 flex flex-col gap-2" id="reason-group">
-          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">서비스를 잘 사용하지 않아요</button>
-          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">불편한 점이 있었어요</button>
-          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">개인정보가 걱정돼요</button>
-          <button type="button" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">기타</button>
+          <button type="button" data-category="NOT_USING" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">서비스를 잘 사용하지 않아요</button>
+          <button type="button" data-category="BUGGY" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">불편한 점이 있었어요</button>
+          <button type="button" data-category="PRIVACY_CONCERN" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">개인정보가 걱정돼요</button>
+          <button type="button" data-category="OTHER" class="reason-chip w-full text-left rounded-xl border border-navborder px-3.5 py-2.5 text-[13px] font-semibold text-ink" aria-pressed="false">기타</button>
         </div>
+        <textarea id="reason-detail" hidden placeholder="어떤 점이 불편하셨는지 알려주세요" rows="3" maxlength="255"
+          class="mt-2 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary resize-none"></textarea>
       </div>
 
       <!-- 비밀번호 확인 -->
@@ -96,14 +98,21 @@
 </div>
 
 <script>
-  // ---------- 탈퇴 사유: 단일 선택 ----------
+  // ---------- 탈퇴 사유: 단일 선택 (카테고리 4종, '기타' 선택 시에만 상세 사유 입력창 노출) ----------
   const reasonButtons = [...document.querySelectorAll('#reason-group .reason-chip')];
+  const reasonDetail = document.getElementById('reason-detail');
+
   reasonButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       reasonButtons.forEach(b => b.setAttribute('aria-pressed', 'false'));
       btn.setAttribute('aria-pressed', 'true');
+      const isOther = btn.dataset.category === 'OTHER';
+      reasonDetail.hidden = !isOther;
+      if (!isOther) reasonDetail.value = '';
+      updateSubmitState();
     });
   });
+  reasonDetail.addEventListener('input', updateSubmitState);
 
   // ---------- 탈퇴 버튼 활성화 조건 ----------
   const withdrawPassword = document.getElementById('withdraw-password');
@@ -114,10 +123,19 @@
 
   function updateSubmitState() {
     withdrawInteracted = true;
-    const enabled = withdrawPassword.value.trim().length > 0 && withdrawAgree.checked;
+    const selectedButton = reasonButtons.find(b => b.getAttribute('aria-pressed') === 'true');
+    const reasonSelected = Boolean(selectedButton);
+    const otherDetailFilled = selectedButton?.dataset.category !== 'OTHER' || reasonDetail.value.trim().length > 0;
+    const enabled = reasonSelected && otherDetailFilled
+      && withdrawPassword.value.trim().length > 0 && withdrawAgree.checked;
     withdrawSubmit.disabled = !enabled;
     withdrawSubmit.classList.toggle('bg-red-500', enabled);
     withdrawSubmit.classList.toggle('bg-navborder', !enabled);
+    withdrawHint.textContent = !reasonSelected
+      ? '탈퇴 사유를 선택해주세요'
+      : !otherDetailFilled
+        ? '기타 사유를 입력해주세요'
+        : '비밀번호를 입력하고 안내 사항에 동의해주세요';
     withdrawHint.classList.toggle('hidden', enabled || !withdrawInteracted);
   }
   withdrawPassword.addEventListener('input', updateSubmitState);

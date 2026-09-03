@@ -1,0 +1,153 @@
+package com.amugeona.meogeuljido.user.service;
+
+import com.amugeona.meogeuljido.common.event.AuditLogEvent;
+import com.amugeona.meogeuljido.common.exception.CustomException;
+import com.amugeona.meogeuljido.common.exception.ErrorCode;
+import com.amugeona.meogeuljido.user.WithdrawalPolicy;
+import com.amugeona.meogeuljido.user.dto.UserProfileResponse;
+import com.amugeona.meogeuljido.user.dto.UserProfileResponse.ActivityCounts;
+import com.amugeona.meogeuljido.user.dto.UserResponse;
+import com.amugeona.meogeuljido.user.dto.UserUpdateRequest;
+import com.amugeona.meogeuljido.user.dto.WithdrawRequest;
+import com.amugeona.meogeuljido.user.entity.User;
+import com.amugeona.meogeuljido.user.entity.UserWithdrawalRequest;
+import com.amugeona.meogeuljido.user.entity.WithdrawalReasonCategory;
+import com.amugeona.meogeuljido.user.repository.UserRepository;
+import com.amugeona.meogeuljido.user.repository.UserWithdrawalRequestRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class UserService {
+
+    private final UserRepository userRepository;
+    private final UserWithdrawalRequestRepository userWithdrawalRequestRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
+
+    public UserProfileResponse getMyProfile(Long userId) {
+        User user = getActiveUserOrThrow(userId);
+        return UserProfileResponse.of(user, resolveActivityCounts(userId));
+    }
+
+    public boolean isNicknameAvailable(String nickname) {
+        return !userRepository.existsByNicknameIgnoreCase(nickname);
+    }
+
+    @Transactional
+    public UserResponse updateNickname(Long userId, UserUpdateRequest request) {
+        User user = getActiveUserOrThrow(userId);
+        String previousNickname = user.getNickname();
+        boolean isSameAsBefore = request.nickname().equalsIgnoreCase(previousNickname);
+        if (!isSameAsBefore && userRepository.existsByNicknameIgnoreCase(request.nickname())) {
+            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
+        /**
+         * 대소문자까지 완전히 동일한 재제출은 실제 변경이 아니므로 반영/로그를 건너뜀
+         * 대소자만 다른 경우 "실질적으로 다른 값"이라 여기서는 정상적으로 반영 및 기록
+         */
+        if (!request.nickname().equals(previousNickname)) {
+            user.changeNickname(request.nickname());
+            eventPublisher.publishEvent(new AuditLogEvent(
+                    userId, "UPDATE", "USER", userId, "닉네임 변경: %s -> %s".formatted(previousNickname, request.nickname()), Instant.now()
+            ));
+            try {
+                /**
+                 * @Transactional 메서드는 보통 커밋 시점(메서드 반환 후)에야 flush되므로
+                 * 그때 터지는 DataIntegrityViolationException은 이 메서드 안에서 잡은 수 없음
+                 * 여기서 명시적으로 flush해 지금 이 지점에서 예외를 확정적으로 유발 및 포착
+                 */
+                userRepository.flush();
+            } catch (DataIntegrityViolationException e) {
+                /**
+                 * 이 메서드에서 flush 중 발생하는 무결성 위반은 방금 바꾼 nickname의
+                 * uq_users_nickname_active 유니크 인덱스 위반뿐이므로, 제약 이름을 몰라도
+                 * DUPLICATE_NICKNAME으로 확정 가능 - Swagger 문서와 일치시킴
+                 */
+                throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+            }
+        }
+
+        return UserResponse.from(user);
+    }
+
+    /**
+     * DELETE /api/users/me
+     * 즉시 탈퇴가 아니라 유예기간(7일) 시작
+     */
+    @Transactional
+    public void requestWithdrawal(Long userId, WithdrawRequest request) {
+        User user = getActiveUserOrThrow(userId);
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        if (request.reasonCategory() == WithdrawalReasonCategory.OTHER && (request.reasonDetail() == null || request.reasonDetail().isBlank())) {
+            throw new CustomException(ErrorCode.WITHDRAWAL_REASON_DETAIL_REQUIRED);
+        }
+        if (userWithdrawalRequestRepository.findByUserIdAndCancelledAtIsNullAndFinalizedAtIsNull(userId).isPresent()) {
+            throw new CustomException(ErrorCode.CONFLICT);
+        }
+        user.requestWithdrawal();
+        userWithdrawalRequestRepository.save(
+                UserWithdrawalRequest.create(userId, request.reasonCategory(), request.reasonDetail())
+        );
+
+        eventPublisher.publishEvent(new AuditLogEvent(
+           userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WithdrawalPolicy.GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()
+        ));
+
+        // TODO(auth 도메인 구현 후 연동): 유예기간 중에도 이후 요청부터는 로그인/토큰 재발급을
+        // 막아야 할지(즉시 로그아웃 처리) 여부는 auth 구현 시 별도 결정 — 지금은 계정이 살아있는
+        // 상태이므로 기존 Access/Refresh Token은 만료 전까지 그대로 유효하다.
+
+        // TODO(auth 도메인 구현 후 연동): auth.redis.RefreshTokenRepository에서 이 userId의
+        // Refresh Token을 삭제하고, 현재 요청의 Access Token을 auth.redis.TokenBlacklistRepository에
+        // 등록해야 한다(api-spec.md §3 DELETE /api/users/me 동작 설명).
+
+    }
+
+    /**
+     * auth 도메인 구현 후 로그인 성공 시 {@code user.recordLogin()} 대신 이 메서드를 호출
+     * 유예기간 중이던 탈퇴 요청을 취소 및 이력 테이블에 남아있는 "진행 중" 행도 함께 취소 처리
+     */
+    @Transactional
+    public void recordLogAndCancelPendingWithdrawal(Long userId) {
+        User user = getActiveUserOrThrow(userId);
+        boolean hadPendingWithdrawal = user.getWithdrawalRequestedAt() != null;
+        user.recordLogin();
+
+        if (hadPendingWithdrawal) {
+            userWithdrawalRequestRepository
+                    .findByUserIdAndCancelledAtIsNullAndFinalizedAtIsNull(userId)
+                    .ifPresent(UserWithdrawalRequest::cancel);
+
+            eventPublisher.publishEvent(new AuditLogEvent(
+                    userId, "UPDATE", "USER", userId, "유예기간 중 로그인으로 탈퇴 요청 취소", Instant.now()
+            ));
+        }
+    }
+
+    private User getActiveUserOrThrow(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+    }
+
+    private ActivityCounts resolveActivityCounts(Long userId) {
+        // TODO(restaurant/review/bookmark 도메인 구현 후 교체): 지금은 0 고정.
+        return new ActivityCounts(0, 0, 0);
+    }
+
+    private String describeDetail(String reasonDetail) {
+        return (reasonDetail == null || reasonDetail.isBlank()) ? "" : "(%s)".formatted(reasonDetail);
+    }
+
+}
