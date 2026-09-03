@@ -19,8 +19,6 @@ CREATE TABLE users (
 CREATE UNIQUE INDEX uq_users_email_active ON users(LOWER(email)) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX uq_users_nickname_active ON users (LOWER(nickname)) WHERE deleted_at IS NULL;
 
--- AccountLifecycleScheduler의 배치 3개가 매일 이 컬럼들을 조건으로 스캔
--- 값이 있는 행만 스캔 대상, 부분 인덱스(partial index)로 충분, 인덱스 크기 최소화
 CREATE INDEX idx_users_withdrawal_requested_at ON users(withdrawal_requested_at) WHERE withdrawal_requested_at IS NOT NULL;
-CREATE INDEX idx_users_last_login_at ON users(last_login_at) WHERE last_login_at IS NOT NULL;
+CREATE INDEX idx_users_last_login_at ON users(last_login_at);
 CREATE INDEX idx_users_dormant_warning_sent_at ON users(dormant_warning_sent_at) WHERE dormant_warning_sent_at IS NOT NULL;

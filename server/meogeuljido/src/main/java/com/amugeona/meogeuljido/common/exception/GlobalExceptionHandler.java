@@ -12,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -48,6 +49,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         log.warn("Malformed request body: {}", e.getMessage());
+        return ResponseEntity.status(ErrorCode.VALIDATION_ERROR.getStatus())
+                .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR));
+    }
+
+    /**
+     * 필수 @RequestParam/@PathVariable이 요청에서 통째로 빠졌을 때 Spring이 던지는 예외
+     * "값이 잘못됨"이 아니라 "값 자체가 없음"이라 @Size/@NotBlank 등 필드 검증기를 거치지 않고 여기서 별도로 잡아야 함
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
+        log.warn("Missing required parameter: {}", e.getMessage());
         return ResponseEntity.status(ErrorCode.VALIDATION_ERROR.getStatus())
                 .body(ErrorResponse.of(ErrorCode.VALIDATION_ERROR));
     }
