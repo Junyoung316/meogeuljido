@@ -35,9 +35,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * finalizeDormantWithdrawals()가 대상 목록을 로드한 뒤 실제로 삭제를 실행하기 직전,
-     * 그 사이 로그인으로 dormantWarningSentAt이 초기화된 유저를 걸러내기 위한 재확인 쿼리
+     * 그 사이 로그인(dormantWarningSentAt 초기화)했거나 자진 탈퇴를 새로 신청
+     * (withdrawalRequestedAt 채워짐) 한 유저를 걸러내기 위한 재확인 쿼리 - 원본 목록 조회
+     * (findAllPendingDormantWithdrawal)와 동일한 조건 집합은 유지해야함
      */
-    @Query("SELECT u.id FROM User u WHERE u.id IN :ids AND u.dormantWarningSentAt IS NOT NULL AND u.dormantWarningSentAt <= :threshold")
+    @Query("SELECT u.id FROM User u WHERE u.id IN :ids AND u.withdrawalRequestedAt IS NULL AND u.dormantWarningSentAt IS NOT NULL AND u.dormantWarningSentAt <= :threshold")
     List<Long> findIdsStillPendingDormantWithdrawal(@Param("ids") List<Long> ids, @Param("threshold") OffsetDateTime threshold);
 
 }

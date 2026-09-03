@@ -15,6 +15,7 @@ import com.amugeona.meogeuljido.user.repository.UserRepository;
 import com.amugeona.meogeuljido.user.repository.UserWithdrawalRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +61,21 @@ public class UserService {
             eventPublisher.publishEvent(new AuditLogEvent(
                     userId, "UPDATE", "USER", userId, "닉네임 변경: %s -> %s".formatted(previousNickname, request.nickname()), Instant.now()
             ));
+            try {
+                /**
+                 * @Transactional 메서드는 보통 커밋 시점(메서드 반환 후)에야 flush되므로
+                 * 그때 터지는 DataIntegrityViolationException은 이 메서드 안에서 잡은 수 없음
+                 * 여기서 명시적으로 flush해 지금 이 지점에서 예외를 확정적으로 유발 및 포착
+                 */
+                userRepository.flush();
+            } catch (DataIntegrityViolationException e) {
+                /**
+                 * 이 메서드에서 flush 중 발생하는 무결성 위반은 방금 바꾼 nickname의
+                 * uq_users_nickname_active 유니크 인덱스 위반뿐이므로, 제약 이름을 몰라도
+                 * DUPLICATE_NICKNAME으로 확정 가능 - Swagger 문서와 일치시킴
+                 */
+                throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+            }
         }
 
         return UserResponse.from(user);
