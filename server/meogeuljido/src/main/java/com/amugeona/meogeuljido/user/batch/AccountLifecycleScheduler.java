@@ -54,7 +54,7 @@ public class AccountLifecycleScheduler {
         Map<Long, UserWithdrawalRequest> requests = userWithdrawalRequestRepository
                 .findByUserIdInAndCancelledAtIsNullAndFinalizedAtIsNull(userIds).stream()
                 .collect(Collectors.toMap(UserWithdrawalRequest::getUserId, r -> r));
-
+        int finalizedCount = 0;
         for (User user : targets) {
             UserWithdrawalRequest pending = requests.get(user.getId());
             if (pending == null) {
@@ -68,8 +68,9 @@ public class AccountLifecycleScheduler {
 
             pending.finalizeRequest();
             finalizeWithdrawal(user, "탈퇴 유예기간 만료로 확정 처리", WithdrawalCompletedEvent.Reason.REQUESTED);
+            finalizedCount++;
         }
-        log.info("[AccountLifecycle] 자진 탈퇴 확정 처리: {}건", targets.size());
+        log.info("[AccountLifecycle] 자진 탈퇴 확정 처리: {}/{}건", finalizedCount, targets.size());
     }
 
     /**
@@ -127,6 +128,7 @@ public class AccountLifecycleScheduler {
                 userRepository.findIdsStillPendingDormantWithdrawal(userIds, threshold)
         );
 
+        int finalizedCount = 0;
         for (User user : targets) {
 
             if (!stillEligible.contains(user.getId())) {
@@ -135,8 +137,9 @@ public class AccountLifecycleScheduler {
             }
 
             finalizeWithdrawal(user, "휴면(%d년 이상 미로그인)으로 자동 탈퇴 처리".formatted(DORMANCY_YEARS), WithdrawalCompletedEvent.Reason.DORMANT);
+            finalizedCount++;
         }
-        log.info("[AccountLifecycle] 휴면 자동 탈퇴 처리: {}건", targets.size());
+        log.info("[AccountLifecycle] 휴면 자동 탈퇴 처리: {}/{}건", finalizedCount, targets.size());
     }
 
     /**
