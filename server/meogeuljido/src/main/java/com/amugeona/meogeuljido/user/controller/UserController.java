@@ -1,5 +1,7 @@
 package com.amugeona.meogeuljido.user.controller;
 
+import com.amugeona.meogeuljido.common.exception.CustomException;
+import com.amugeona.meogeuljido.common.exception.ErrorCode;
 import com.amugeona.meogeuljido.common.exception.GlobalExceptionHandler.ErrorResponse;
 import com.amugeona.meogeuljido.common.security.AuthenticatedUser;
 import com.amugeona.meogeuljido.user.dto.*;
@@ -37,10 +39,19 @@ public class UserController {
             @Parameter(description = "확인할 닉네임 (2~12자)", example = "혼밥러버")
             @RequestParam
             @NotBlank(message = "닉네임은 필수입니다.")
-            @Size(min = 2, max = 12, message = "닉네임은 2~12자여야 합니다.")
             String nickname
     ) {
-        return ResponseEntity.ok(new NicknameAvailabilityResponse(userService.isNicknameAvailable(nickname.strip())));
+        String trimmed = nickname.strip();
+        if (trimmed.length() < 2 || trimmed.length() > 12) {
+            /**
+             * ErrorCode의 범용 기존 메시지 대신, 기존 @Size(message = ...)와 같은 구체적인
+             * 안내를 유지하기 위해 2-인자 생성자로 메시지를 직접 지정
+             */
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "닉네임은 2~12자여야 합니다.");
+        }
+        return ResponseEntity.ok(new NicknameAvailabilityResponse(
+           userService.isNicknameAvailable(trimmed)
+        ));
     }
 
     @Operation(summary = "내 프로필 조회", description = "활동 요약(리뷰/즐겨찾기/등록 식당 수) 포함.")
