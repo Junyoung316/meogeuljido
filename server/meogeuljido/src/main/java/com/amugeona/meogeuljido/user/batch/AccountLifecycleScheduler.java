@@ -65,19 +65,9 @@ public class AccountLifecycleScheduler {
                 log.info("[AccountLifecycle] 탈퇴 확정 건너뜀(취소됨): userId={}", user.getId());
                 continue;
             }
-            /**
-             * withdraw() 이후에도 이 User 인스턴스는 같은 트랜잭션 안에서 이미 로드돼 있으므로
-             * email/nickname을 계속 읽을 수 있다 - delete_at이 찍혀도 필드 값 자체는 그대로
-             */
-            String email = user.getEmail();
-            String nickname = user.getNickname();
-            user.withdraw();
-            eventPublisher.publishEvent(new AuditLogEvent(
-                    user.getId(), "DELETE", "USER", user.getId(), "탈퇴 유예기간 만료로 확정 처리", Instant.now()
-            ));
-            eventPublisher.publishEvent(new WithdrawalCompletedEvent(
-                    user.getId(), email, nickname, WithdrawalCompletedEvent.Reason.REQUESTED
-            ));
+
+            pending.finalizeRequest();
+            finalizeWithdrawal(user, "탈퇴 유예기간 만료로 확정 처리", WithdrawalCompletedEvent.Reason.REQUESTED);
         }
         log.info("[AccountLifecycle] 자진 탈퇴 확정 처리: {}건", targets.size());
     }
@@ -144,18 +134,26 @@ public class AccountLifecycleScheduler {
                 continue;
             }
 
-            String email = user.getEmail();
-            String nickname = user.getNickname();
-            user.withdraw();
-            eventPublisher.publishEvent(new AuditLogEvent(
-                    user.getId(), "DELETE", "USER", user.getId(), "휴면(%d년 이상 미로그인)으로 자동 탈퇴 처리".formatted(DORMANCY_YEARS), Instant.now()
-            ));
-            eventPublisher.publishEvent(new WithdrawalCompletedEvent(
-                    user.getId(), email, nickname, WithdrawalCompletedEvent.Reason.DORMANT
-            ));
+            finalizeWithdrawal(user, "휴면(%d년 이상 미로그인)으로 자동 탈퇴 처리".formatted(DORMANCY_YEARS), WithdrawalCompletedEvent.Reason.DORMANT);
         }
         log.info("[AccountLifecycle] 휴면 자동 탈퇴 처리: {}건", targets.size());
     }
 
+    /**
+     * 탈퇴 확정(soft delete) + 감사 로그 + 완료 안내 메인, 두 확정 배치가 공통으로 거치는 단계
+     * user_withdrawal_requests 행 처리(pending.finalizeRequest())는 자진 탈퇴 경로에만 있어
+     * 호출부에서 이 메서드 호출 전에 별도로 처리 - 억지로 이 안에 넣으면 조건 분기가 늘어남
+     */
+    private void finalizeWithdrawal(User user, String auditSummary, WithdrawalCompletedEvent.Reason reason) {
+        String email = user.getEmail();
+        String nickname = user.getNickname();
+        user.withdraw();
+        eventPublisher.publishEvent(new AuditLogEvent(
+           user.getId(), "DELETE", "USER", user.getId(), auditSummary, Instant.now()
+        ));
+        eventPublisher.publishEvent(new WithdrawalCompletedEvent(
+                user.getId(), email, nickname, reason
+        ));
+    }
 
 }

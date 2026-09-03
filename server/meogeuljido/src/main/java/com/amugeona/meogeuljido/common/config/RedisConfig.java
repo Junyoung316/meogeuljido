@@ -1,5 +1,6 @@
 package com.amugeona.meogeuljido.common.config;
 
+import com.amugeona.meogeuljido.MeogeuljidoApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -18,7 +19,7 @@ public class RedisConfig {
         template.setKeySerializer(new StringRedisSerializer());
         var jsonSerializer = GenericJacksonJsonRedisSerializer.builder()
                         .enableDefaultTyping(BasicPolymorphicTypeValidator.builder()
-                                .allowIfSubType("com.amugeona.meogeuljido.")
+                                .allowIfSubType(MeogeuljidoApplication.class.getPackageName() + ".")
                                 .allowIfSubType("java.util.")
                                 .build())
                 .build();
