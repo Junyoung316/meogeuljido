@@ -23,6 +23,12 @@ public class CustomException extends RuntimeException {
      */
     public CustomException(ErrorCode errorCode, String message, List<GlobalExceptionHandler.ErrorResponse.FieldErrorDetail> fieldErrors) {
         super(message);
+        if (fieldErrors != null && errorCode != ErrorCode.VALIDATION_ERROR) {
+            /**
+             * fieldErrors는 400 VALIDATION_ERROR 전용
+             */
+            throw new IllegalArgumentException("fieldErrors는 VALIDATION_ERROR와만 함께 사용할 수 있습니다: " + errorCode);
+        }
         this.errorCode = errorCode;
         this.fieldErrors = fieldErrors;
 

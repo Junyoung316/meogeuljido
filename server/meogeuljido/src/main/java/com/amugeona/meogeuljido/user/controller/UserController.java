@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -46,12 +45,12 @@ public class UserController {
     ) {
         String trimmed = nickname.strip();
         if (trimmed.length() < NicknamePolicy.MIN_LENGTH || trimmed.length() > NicknamePolicy.MAX_LENGTH) {
-            /**
-             * ErrorCode의 범용 기존 메시지 대신, 기존 @Size(message = ...)와 같은 구체적인
-             * 안내를 유지하기 위해 2-인자 생성자로 메시지를 직접 지정
-             */
             throw new CustomException(
-                    ErrorCode.VALIDATION_ERROR, NicknamePolicy.LENGTH_MESSAGE, List.of(
+                    /**
+                     * 최상위 message는 다른 VALIDATION_ERROR 경로와 마찬가지로 항상 범용 기본
+                     * 메시지로 고정한다 — 구체적인 안내는 fieldErrors[].reason에만 담는다.
+                     */
+                    ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getDefaultMessage(), List.of(
                             new ErrorResponse.FieldErrorDetail(
                             "nickname", NicknamePolicy.LENGTH_MESSAGE
                             )
