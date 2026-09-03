@@ -14,7 +14,9 @@ CREATE TABLE users (
 );
 
 -- 탈퇴(soft delete) 후 동일 이메일/닉네임 재사용을 허용하기 위해 "삭제되지 않은 행"에만 유니크 제약을 건다.
-CREATE UNIQUE INDEX uq_users_email_active    ON users (email)    WHERE deleted_at IS NULL;
+-- 이메일은 로컬 파트 대소문자를 구분하지 않는게 사실상 표준
+-- 닉네임과 마찬가지로 LOWER() 함수 인덱스로 대소문자 무시 유니크 제약을 검
+CREATE UNIQUE INDEX uq_users_email_active ON users(LOWER(email)) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX uq_users_nickname_active ON users (LOWER(nickname)) WHERE deleted_at IS NULL;
 
 -- AccountLifecycleScheduler의 배치 3개가 매일 이 컬럼들을 조건으로 스캔

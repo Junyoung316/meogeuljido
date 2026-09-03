@@ -56,11 +56,17 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    private User(String email, String paswordHash, String nickname) {
+    private User(String email, String passwordHash, String nickname) {
         this.email = email;
-        this.passwordHash = paswordHash;
+        this.passwordHash = passwordHash;
         this.nickname = nickname;
         this.role = Role.USER;
+        /**
+         * 가입 직후에는 "방급 활동했다"는 의미로 lastLoginAt을 가입 시각으로 초기화
+         * 이렇게 해야 가입 후 한 번도 로그인하지 않은 계정도 1년 뒤 정상적으로 휴면
+         * 경고, 자동 탈퇴 대상이 됨 - 초기화하지 않으면 findDormantUsersPendingWarning의 "lastLoginAt IS NOT NULL" 조건에 걸려 영구히 정책 대상에서 빠짐
+         */
+        this.lastLoginAt = OffsetDateTime.now();
     }
 
     public static User create(String email, String passwordHash, String nickname) {

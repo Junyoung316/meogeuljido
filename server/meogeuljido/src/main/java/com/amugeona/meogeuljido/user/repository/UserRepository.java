@@ -11,9 +11,16 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByEmail(String email);
+    /**
+     * findAllPendingDormantWithdrawal와 findIdsStillPendingDormantWithdrawal이 반드시 같은
+     * 조건을 검사해야 하므로 문자열을 한 곳에서만 관리
+     * static final String을 "+"로 이어 붙인 결과도 컴파일타임 상수라 @Query 어노테이션 값으로 그대로 쓸 수 있음
+     */
+    String DORMANT_WITHDRAWAL_CONDITION = "u.withdrawalRequestedAt IS NULL AND u.dormantWarningSentAt IS NOT NULL AND u.dormantWarningSentAt <= :threshold";
 
-    boolean existsByEmail(String email);
+    Optional<User> findByEmailIgnoreCase(String email);
+
+    boolean existsByEmailIgnoreCase(String email);
     boolean existsByNicknameIgnoreCase(String nickname);
 
     /**
@@ -30,7 +37,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * dormantWarningSentAt이 채워진 유저만 대상(recordLogin()이 로그인 시 이를 초기화)
      * 재로그인한 유저는 자동으로 이 목록에서 제외
      */
-    @Query("SELECT u From User u WHERE u.withdrawalRequestedAt IS NULL AND u.dormantWarningSentAt IS NOT NULL AND u.dormantWarningSentAt <= :threshold")
+    @Query("SELECT u From User u WHERE " + DORMANT_WITHDRAWAL_CONDITION)
     List<User> findAllPendingDormantWithdrawal(@Param("threshold") OffsetDateTime threshold);
 
     /**
@@ -39,7 +46,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * (withdrawalRequestedAt 채워짐) 한 유저를 걸러내기 위한 재확인 쿼리 - 원본 목록 조회
      * (findAllPendingDormantWithdrawal)와 동일한 조건 집합은 유지해야함
      */
-    @Query("SELECT u.id FROM User u WHERE u.id IN :ids AND u.withdrawalRequestedAt IS NULL AND u.dormantWarningSentAt IS NOT NULL AND u.dormantWarningSentAt <= :threshold")
+    @Query("SELECT u.id FROM User u WHERE u.id IN :ids AND " + DORMANT_WITHDRAWAL_CONDITION)
     List<Long> findIdsStillPendingDormantWithdrawal(@Param("ids") List<Long> ids, @Param("threshold") OffsetDateTime threshold);
 
 }
