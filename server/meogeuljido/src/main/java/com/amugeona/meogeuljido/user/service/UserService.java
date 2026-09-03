@@ -3,6 +3,7 @@ package com.amugeona.meogeuljido.user.service;
 import com.amugeona.meogeuljido.common.event.AuditLogEvent;
 import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
+import com.amugeona.meogeuljido.user.WithdrawalPolicy;
 import com.amugeona.meogeuljido.user.dto.UserProfileResponse;
 import com.amugeona.meogeuljido.user.dto.UserProfileResponse.ActivityCounts;
 import com.amugeona.meogeuljido.user.dto.UserResponse;
@@ -26,8 +27,6 @@ import java.time.Instant;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserService {
-
-    private static final int WITHDRAWAL_GRACE_DAYS = 7;
 
     private final UserRepository userRepository;
     private final UserWithdrawalRequestRepository userWithdrawalRequestRepository;
@@ -103,7 +102,7 @@ public class UserService {
         );
 
         eventPublisher.publishEvent(new AuditLogEvent(
-           userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WITHDRAWAL_GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()
+           userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WithdrawalPolicy.GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()
         ));
 
         // TODO(auth 도메인 구현 후 연동): 유예기간 중에도 이후 요청부터는 로그인/토큰 재발급을

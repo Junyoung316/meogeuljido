@@ -40,7 +40,7 @@ public class UserController {
             @Size(min = 2, max = 12, message = "닉네임은 2~12자여야 합니다.")
             String nickname
     ) {
-        return ResponseEntity.ok(new NicknameAvailabilityResponse(userService.isNicknameAvailable(nickname)));
+        return ResponseEntity.ok(new NicknameAvailabilityResponse(userService.isNicknameAvailable(nickname.strip())));
     }
 
     @Operation(summary = "내 프로필 조회", description = "활동 요약(리뷰/즐겨찾기/등록 식당 수) 포함.")

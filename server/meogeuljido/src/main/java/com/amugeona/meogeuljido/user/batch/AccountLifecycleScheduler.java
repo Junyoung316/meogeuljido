@@ -2,6 +2,7 @@ package com.amugeona.meogeuljido.user.batch;
 
 import com.amugeona.meogeuljido.common.event.AuditLogEvent;
 import com.amugeona.meogeuljido.common.event.WithdrawalCompletedEvent;
+import com.amugeona.meogeuljido.user.WithdrawalPolicy;
 import com.amugeona.meogeuljido.user.entity.User;
 import com.amugeona.meogeuljido.user.entity.UserWithdrawalRequest;
 import com.amugeona.meogeuljido.user.repository.UserRepository;
@@ -26,7 +27,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AccountLifecycleScheduler {
 
-    private static final int WITHDRAWAL_GRACE_DAYS = 7;
     private static final int DORMANCY_YEARS = 1;
     private static final int DORMANCY_WARNING_LEAD_DAYS = 7;
 
@@ -42,7 +42,7 @@ public class AccountLifecycleScheduler {
     @Transactional
     @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
     public void finalizeRequestedWithdrawals() {
-        OffsetDateTime threshold = OffsetDateTime.now().minusDays(WITHDRAWAL_GRACE_DAYS);
+        OffsetDateTime threshold = OffsetDateTime.now().minusDays(WithdrawalPolicy.GRACE_DAYS);
         List<User> targets = userRepository.findAllPendingWithdrawalFinalization(threshold);
 
         if (targets.isEmpty()) {
