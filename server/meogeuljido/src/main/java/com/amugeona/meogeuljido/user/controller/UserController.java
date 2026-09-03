@@ -4,6 +4,7 @@ import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
 import com.amugeona.meogeuljido.common.exception.GlobalExceptionHandler.ErrorResponse;
 import com.amugeona.meogeuljido.common.security.AuthenticatedUser;
+import com.amugeona.meogeuljido.user.NicknamePolicy;
 import com.amugeona.meogeuljido.user.dto.*;
 import com.amugeona.meogeuljido.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +23,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "User", description = "내 프로필 조회/수정, 닉네임 중복확인, 탈퇴 요청")
 @RestController
@@ -42,12 +45,18 @@ public class UserController {
             String nickname
     ) {
         String trimmed = nickname.strip();
-        if (trimmed.length() < 2 || trimmed.length() > 12) {
+        if (trimmed.length() < NicknamePolicy.MIN_LENGTH || trimmed.length() > NicknamePolicy.MAX_LENGTH) {
             /**
              * ErrorCode의 범용 기존 메시지 대신, 기존 @Size(message = ...)와 같은 구체적인
              * 안내를 유지하기 위해 2-인자 생성자로 메시지를 직접 지정
              */
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "닉네임은 2~12자여야 합니다.");
+            throw new CustomException(
+                    ErrorCode.VALIDATION_ERROR, NicknamePolicy.LENGTH_MESSAGE, List.of(
+                            new ErrorResponse.FieldErrorDetail(
+                            "nickname", NicknamePolicy.LENGTH_MESSAGE
+                            )
+                    )
+            );
         }
         return ResponseEntity.ok(new NicknameAvailabilityResponse(
            userService.isNicknameAvailable(trimmed)

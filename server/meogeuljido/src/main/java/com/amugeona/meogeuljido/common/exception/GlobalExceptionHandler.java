@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleCustomException(CustomException e) {
         ErrorCode errorCode = e.getErrorCode();
         return ResponseEntity.status(errorCode.getStatus())
-                .body(ErrorResponse.of(errorCode.name(), e.getMessage(), null));
+                .body(ErrorResponse.of(errorCode.name(), e.getMessage(), e.getFieldErrors()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
