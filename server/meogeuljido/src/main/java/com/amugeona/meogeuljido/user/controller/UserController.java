@@ -12,16 +12,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "User", description = "내 프로필 조회/수정, 닉네임 중복확인, 탈퇴 요청")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@Validated
 public class UserController {
 
     private final UserService userService;
@@ -31,7 +35,10 @@ public class UserController {
     @GetMapping("/check-nickname")
     public ResponseEntity<NicknameAvailabilityResponse> checkNickname(
             @Parameter(description = "확인할 닉네임 (2~12자)", example = "혼밥러버")
-            @RequestParam String nickname
+            @RequestParam
+            @NotBlank(message = "닉네임은 필수입니다.")
+            @Size(min = 2, max = 12, message = "닉네임은 2~12자여야 합니다.")
+            String nickname
     ) {
         return ResponseEntity.ok(new NicknameAvailabilityResponse(userService.isNicknameAvailable(nickname)));
     }

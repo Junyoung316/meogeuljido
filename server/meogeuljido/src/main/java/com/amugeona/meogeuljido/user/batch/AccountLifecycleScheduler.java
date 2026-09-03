@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -54,17 +56,22 @@ public class AccountLifecycleScheduler {
                 .collect(Collectors.toMap(UserWithdrawalRequest::getUserId, r -> r));
 
         for (User user : targets) {
+            UserWithdrawalRequest pending = requests.get(user.getId());
+            if (pending == null) {
+                /**
+                 * 배치가 대상 목록을 로드한 뒤, 재확인 쿼리 전에 로그인으로 탈퇴가
+                 * 취소된 경우 재확인 쿼리(더 최신 상태)를 신뢰해 이 유저는 건너뜀
+                 */
+                log.info("[AccountLifecycle] 탈퇴 확정 건너뜀(취소됨): userId={}", user.getId());
+                continue;
+            }
             /**
              * withdraw() 이후에도 이 User 인스턴스는 같은 트랜잭션 안에서 이미 로드돼 있으므로
-             * email/nickname을 계속 읽을 수 있다 - delete_at이 찍혀도 필드 값 자체는 그대로다.
+             * email/nickname을 계속 읽을 수 있다 - delete_at이 찍혀도 필드 값 자체는 그대로
              */
             String email = user.getEmail();
             String nickname = user.getNickname();
             user.withdraw();
-            UserWithdrawalRequest pending = requests.get(user.getId());
-            if (pending != null) {
-                pending.finalizeRequest();
-            }
             eventPublisher.publishEvent(new AuditLogEvent(
                     user.getId(), "DELETE", "USER", user.getId(), "탈퇴 유예기간 만료로 확정 처리", Instant.now()
             ));
@@ -116,7 +123,27 @@ public class AccountLifecycleScheduler {
          */
         OffsetDateTime threshold = OffsetDateTime.now().minusDays(DORMANCY_WARNING_LEAD_DAYS);
         List<User> targets = userRepository.findAllPendingDormantWithdrawal(threshold);
+
+        if (targets.isEmpty()) {
+            log.info("[AccountLifecycle] 휴면 자동 탈퇴 처리: 0건");
+            return;
+        }
+
+        List<Long> userIds = targets.stream().map(User::getId).toList();
+        /**
+         * targets 로드 이후 재로그인 등으로 자격을 잃은 유저를 걸러내는 재확인
+         */
+        Set<Long> stillEligible = new HashSet<>(
+                userRepository.findIdsStillPendingDormantWithdrawal(userIds, threshold)
+        );
+
         for (User user : targets) {
+
+            if (!stillEligible.contains(user.getId())) {
+                log.info("[AccountLifecycle] 휴면 탈퇴 건너뜀(재로그인됨): userId={}", user.getId());
+                continue;
+            }
+
             String email = user.getEmail();
             String nickname = user.getNickname();
             user.withdraw();

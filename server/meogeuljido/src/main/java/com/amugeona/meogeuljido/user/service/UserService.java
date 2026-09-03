@@ -46,14 +46,21 @@ public class UserService {
     public UserResponse updateNickname(Long userId, UserUpdateRequest request) {
         User user = getActiveUserOrThrow(userId);
         String previousNickname = user.getNickname();
-        if (!request.nickname().equalsIgnoreCase(previousNickname) && userRepository.existsByNicknameIgnoreCase(request.nickname())) {
+        boolean isSameAsBefore = request.nickname().equalsIgnoreCase(previousNickname);
+        if (!isSameAsBefore && userRepository.existsByNicknameIgnoreCase(request.nickname())) {
             throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
         }
-        user.changeNickname(request.nickname());
 
-        eventPublisher.publishEvent(new AuditLogEvent(
-                userId, "UPDATE", "USER", userId, "닉네임 변경: %s -> %s".formatted(previousNickname, request.nickname()), Instant.now()
-        ));
+        /**
+         * 대소문자까지 완전히 동일한 재제출은 실제 변경이 아니므로 반영/로그를 건너뜀
+         * 대소자만 다른 경우 "실질적으로 다른 값"이라 여기서는 정상적으로 반영 및 기록
+         */
+        if (!request.nickname().equals(previousNickname)) {
+            user.changeNickname(request.nickname());
+            eventPublisher.publishEvent(new AuditLogEvent(
+                    userId, "UPDATE", "USER", userId, "닉네임 변경: %s -> %s".formatted(previousNickname, request.nickname()), Instant.now()
+            ));
+        }
 
         return UserResponse.from(user);
     }
