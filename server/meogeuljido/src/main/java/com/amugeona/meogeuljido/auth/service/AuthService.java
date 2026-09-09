@@ -109,14 +109,18 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(principal.getId(), principal.getRole());
         Duration rtTtl = request.rememberMe() ? RT_TTL_REMEMBER : RT_TTL_SESSION;
         String refreshToken = jwtTokenProvider.generateRefreshToken(principal.getId(), rtTtl);
-        refreshTokenRepository.save(principal.getId(), refreshToken, rtTtl);
+        refreshTokenRepository.save(principal.getId(), refreshToken, rtTtl, request.rememberMe());
 
         User user = userRepository.findById(principal.getId()).orElseThrow();
         return new LoginResult(accessToken, refreshToken, rtTtl, request.rememberMe(), new LoginResponse.UserSummary(user.getId(), user.getNickname(), user.getRole().name()));
     }
 
+    private String loginFailKey(String email) {
+        return LOGIN_FAIL_PREFIX + email.toLowerCase();
+    }
+
     private CustomUserDetails authenticate(String email, String password) {
-        String attemptsKey = LOGIN_FAIL_PREFIX + email;
+        String attemptsKey = loginFailKey(email);
         rateLimitGuard.checkNotLocked(attemptsKey, MAX_LOGIN_ATTEMPTS, ErrorCode.LOGIN_LOCKED);
 
         try {
@@ -135,11 +139,9 @@ public class AuthService {
      * 로그인 잠금 해제용 인증코드 발송, 계정 존재 여부와 무관하게 항상 조용히 끝남
      */
     public void requestLoginUnlock(String email) {
-        if (emailExists(email)) {
-            emailVerificationService.issueCode(
-                    LOGIN_UNLOCK_CODE_PREFIX, email, "[먹을지도] 로그인 잠금 해제 인증코드", "인증코드: %s (5분 이내 입력해주세요.)"
-            );
-        }
+        emailVerificationService.issueCodeIfExists(
+                LOGIN_UNLOCK_CODE_PREFIX, email, "[먹을지도] 로그인 잠금 해제 인증코드", "인증코드: %s (5분 이내 입력해주세요.)", emailExists(email)
+        );
     }
 
     /**
@@ -170,10 +172,9 @@ public class AuthService {
         Duration ttl = Duration.ofSeconds(stored.ttlSeconds());
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().name());
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), ttl);
-        refreshTokenRepository.save(user.getId(), newRefreshToken, ttl);
+        refreshTokenRepository.save(user.getId(), newRefreshToken, ttl, stored.rememberMe());
 
-        boolean rememberMe = ttl.compareTo(RT_TTL_SESSION) > 0;
-        return new ReissueResult(newAccessToken, newRefreshToken, ttl, rememberMe);
+        return new ReissueResult(newAccessToken, newRefreshToken, ttl, stored.rememberMe());
     }
 
     @Transactional
@@ -186,11 +187,9 @@ public class AuthService {
     }
 
     public void sendPasswordResetCode(String email){
-        if (emailExists(email)) {
-            emailVerificationService.issueCode(
-                    RESET_CODE_PREFIX, email, "[먹을지도] 비밀번호 재설정 인증코드", "인증코드: %s (5분 이내 입력새주세요.)"
-            );
-        }
+        emailVerificationService.issueCodeIfExists(
+                RESET_CODE_PREFIX, email, "[먹을지도] 비밀번호 재설정 인증코드", "인증코드: %s (5분 이내 입력새주세요.)", emailExists(email)
+        );
         /**
          * 가입 여부와 무관하게 항상 204- 존재하지 않으면 조용히 아무 것도 하지 않음(이메일 존재 여부 비노출)
          */

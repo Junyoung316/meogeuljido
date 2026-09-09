@@ -15,9 +15,9 @@ public class RefreshTokenRepository {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void save(Long userId, String token, Duration ttl) {
+    public void save(Long userId, String token, Duration ttl, boolean rememberMe) {
         redisTemplate.opsForValue().set(
-                KEY_PREFIX + userId, new RefreshTokenValue(token, ttl.getSeconds()), ttl
+                KEY_PREFIX + userId, new RefreshTokenValue(token, ttl.getSeconds(), rememberMe), ttl
         );
     }
 
@@ -30,6 +30,6 @@ public class RefreshTokenRepository {
         redisTemplate.delete(KEY_PREFIX + userId);
     }
 
-    public record RefreshTokenValue(String token, long ttlSeconds) {}
+    public record RefreshTokenValue(String token, long ttlSeconds, boolean rememberMe) {}
 
 }

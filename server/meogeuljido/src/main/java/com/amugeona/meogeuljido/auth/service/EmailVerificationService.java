@@ -5,6 +5,7 @@ import com.amugeona.meogeuljido.common.exception.ErrorCode;
 import com.amugeona.meogeuljido.common.mail.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -38,6 +39,34 @@ public class EmailVerificationService {
         redisTemplate.opsForValue().set(keyPrefix + email, code, CODE_TTL);
         rateLimitGuard.reset(attemptsKey(keyPrefix, email));
         mailService.send(email, subject, bodyFormat.formatted(code));
+    }
+
+    /**
+     * 쿨다운은 이메일 존재 여부와 무관하게 항상 검(응답 타이밍으로 계정 존재가 새지 않도록)
+     * 실제 코드 발급/발송은 exists가 true일 때만 하고, 그마저도 메일 발송을 성공한 뒤에만 Redis에 코드를 커밋
+     * (발송 실패로 못 받은 코드 때문에 쿨다운에 갇히는 상황을 막기 위함)
+     */
+    public void issueCodeIfExists(String keyPrefix, String email, String subject, String bodyFormat, boolean exists) {
+        String cooldownKey = keyPrefix + "cooldown" + email;
+        Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(cooldownKey, "1", COOLDOWN);
+
+        if (Boolean.FALSE.equals(firstRequest)) {
+            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS);
+        }
+        if (!exists) {
+            return;
+        }
+
+        String code = "%06d".formatted(SECURE_RANDOM.nextInt(1_000_000));
+
+        try {
+            mailService.send(email, subject, bodyFormat.formatted(code));
+        } catch (MailException e) {
+            redisTemplate.delete(cooldownKey);
+            throw e;
+        }
+        redisTemplate.opsForValue().set(keyPrefix + email, code, CODE_TTL);
+        rateLimitGuard.reset(attemptsKey(keyPrefix, email));
     }
 
     /**
