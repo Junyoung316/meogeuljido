@@ -58,9 +58,14 @@ public class JwtTokenProvider {
     }
 
     public Optional<AccessTokenClaims> parseAccessToken(String token) {
-        return parseTyped(token, TYPE_ACCESS, claims -> new AccessTokenClaims(
-                Long.valueOf(claims.getSubject()),
-                claims.get(CLAIM_ROLE, String.class)));
+        return parseTyped(token, TYPE_ACCESS, claims -> {
+            long remainingMillis = claims.getExpiration().getTime() - System.currentTimeMillis();
+            return new AccessTokenClaims(
+                    Long.valueOf(claims.getSubject()),
+                    claims.get(CLAIM_ROLE, String.class),
+                    Duration.ofMillis(Math.max(remainingMillis, 0))
+            );
+        });
     }
 
     public Optional <RefreshTokenClaims> parseRefreshToken(String token) {
@@ -95,7 +100,7 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public record AccessTokenClaims(Long userId, String role) {
+    public record AccessTokenClaims(Long userId, String role, Duration remainingValidity) {
     }
 
     public record RefreshTokenClaims(Long userId, Duration remainingValidity) {

@@ -80,6 +80,13 @@ public class User {
     }
 
     /**
+     * 비밀번호 재설정 확정 시 auth가 호출
+     */
+    public void changePassword(String newPassword) {
+        this.passwordHash = newPassword;
+    }
+
+    /**
      * 자진 탈퇴 요청 - 즉시 삭제하지 않고 유예기간 시작 시각만 기록
      */
     public void requestWithdrawal() {
@@ -87,7 +94,7 @@ public class User {
     }
 
     /**
-     * 유예기간/휴면 판정 배치가 실제로 계정을 탈퇴처리할 때 호출
+     * 유예기간/휴면 판정 배치가 실제로 계정을 탈퇴 처리할 때 호출
      */
     public void withdraw() {
         this.deletedAt = OffsetDateTime.now();

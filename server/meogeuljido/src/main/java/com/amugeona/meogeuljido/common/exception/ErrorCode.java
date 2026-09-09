@@ -19,6 +19,7 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
     CODE_MISMATCH(HttpStatus.UNAUTHORIZED, "인증코드가 일치하지 않습니다."),
     EMAIL_NOT_VERIFIED(HttpStatus.UNAUTHORIZED, "이메일 인증이 완료되지 않았습니다."),
+    LOGIN_LOCKED(HttpStatus.LOCKED, "로그인 시도가 너무 많아 잠겼습니다. 이메일 인증 후 다시 시도해주세요."),
     WITHDRAWAL_REASON_DETAIL_REQUIRED(HttpStatus.BAD_REQUEST, "기타 사유를 선택한 경우 상세 사유를 입력해야 합니다."),
 
     // 식당
