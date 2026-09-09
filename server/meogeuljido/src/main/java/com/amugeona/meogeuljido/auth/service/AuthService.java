@@ -63,7 +63,7 @@ public class AuthService {
     private final ApplicationEventPublisher eventPublisher;
 
     public boolean emailExists(String email) {
-        return userRepository.existsByNicknameIgnoreCase(email);
+        return userRepository.existsByEmailIgnoreCase(email);
     }
 
     public void sendSignupVerificationCode(String email) {

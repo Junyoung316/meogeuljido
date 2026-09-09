@@ -139,7 +139,7 @@ public class AuthController {
     })
     @PostMapping("/reissue")
     public ResponseEntity<ReissueResponse> reissue(
-        @CookieValue(value = "REFRESH_TOKEN_COOKIE", required = false) String refreshToken
+        @CookieValue(value = REFRESH_TOKEN_COOKIE, required = false) String refreshToken
     ) {
         AuthService.ReissueResult result = authService.reissue(refreshToken);
         return ResponseEntity.ok()

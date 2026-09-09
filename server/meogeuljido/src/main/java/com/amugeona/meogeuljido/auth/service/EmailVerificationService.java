@@ -45,7 +45,7 @@ public class EmailVerificationService {
      */
     public void verifyCode(String keyPrefix, String email, String code) {
         String attemptsKey = attemptsKey(keyPrefix, email);
-        rateLimitGuard.recordFailure(attemptsKey, CODE_TTL);
+        rateLimitGuard.checkNotLocked(attemptsKey, MAX_VERIFY_ATTEMPTS, ErrorCode.TOO_MANY_REQUESTS);
 
         String key = keyPrefix + email;
         String stored = redisTemplate.opsForValue().get(key);
