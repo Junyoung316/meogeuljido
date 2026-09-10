@@ -125,7 +125,12 @@ public class AuthService {
             rateLimitGuard.reset(attemptsKey);
             return (CustomUserDetails) authentication.getPrincipal();
         } catch (AuthenticationException e) {
-            rateLimitGuard.recordFailure(attemptsKey);
+            long failureCount = rateLimitGuard.recordFailurePermanently(attemptsKey);
+
+            if (failureCount >= MAX_LOGIN_ATTEMPTS) {
+                throw new CustomException(ErrorCode.LOGIN_LOCKED);
+            }
+
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         }
     }
@@ -191,7 +196,7 @@ public class AuthService {
 
     public void sendPasswordResetCode(String email){
         emailVerificationService.issueCodeIfExists(
-                RESET_CODE_PREFIX, email, "[먹을지도] 비밀번호 재설정 인증코드", "인증코드: %s (5분 이내 입력새주세요.)", emailExists(email)
+                RESET_CODE_PREFIX, email, "[먹을지도] 비밀번호 재설정 인증코드", "인증코드: %s (5분 이내 입력해주세요.)", emailExists(email)
         );
         /**
          * 가입 여부와 무관하게 항상 204- 존재하지 않으면 조용히 아무 것도 하지 않음(이메일 존재 여부 비노출)

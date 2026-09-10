@@ -73,7 +73,7 @@ public class EmailVerificationService {
         String key = keyPrefix + email;
         String stored = redisTemplate.opsForValue().get(key);
         if (stored == null || !stored.equals(code)) {
-            rateLimitGuard.recordFailure(attemptsKey, CODE_TTL);
+            rateLimitGuard.recordFailureWithExpiry(attemptsKey, CODE_TTL);
             throw new CustomException(ErrorCode.CODE_MISMATCH);
         }
         rateLimitGuard.reset(attemptsKey);
