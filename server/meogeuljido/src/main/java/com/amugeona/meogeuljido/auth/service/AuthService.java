@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -77,7 +78,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        boolean verified = emailVerificationService.consumeIfEmailTokenMatches(SIGNUP_TOKEN_PREFIX, request.email(), request.emailVerifiedToken());
+        boolean verified = emailVerificationService.hasValidEmailToken(SIGNUP_TOKEN_PREFIX, request.email(), request.emailVerifiedToken());
 
         if (!verified) {
             throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
@@ -85,6 +86,8 @@ public class AuthService {
 
         User user = User.create(request.email(), passwordEncoder.encode(request.password()), request.nickname());
         userRepository.save(user);
+
+        emailVerificationService.consumeEmailToken(SIGNUP_TOKEN_PREFIX, request.email());
 
         eventPublisher.publishEvent(new AuditLogEvent(
                 user.getId(), "CREATE", "USER", user.getId(), "회원가입", Instant.now()
@@ -154,9 +157,17 @@ public class AuthService {
                 .map(JwtTokenProvider.RefreshTokenClaims::userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
-        RefreshTokenValue stored = refreshTokenRepository.findAndInvalidate(userId)
-                .filter(v -> v.token().equals(refreshTokenCookie))
-                .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
+        Optional<RefreshTokenValue> found = refreshTokenRepository.findAndInvalidate(userId);
+        RefreshTokenValue stored = found.orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
+
+        if (!stored.token().equals(refreshTokenCookie)) {
+            /**
+             * GETDEL이 이미 지워버린 값이 요청 토큰과 다름 = 다른 요청이 먼저 회전시킨 최신 토큰이었다는 뜻
+             * 그 값을 삭제된 채로 두면 방급 회전에 성공한 진짜 세션까지 로그아웃되므로 즉시 복원
+             */
+            refreshTokenRepository.save(userId, stored.token(), Duration.ofSeconds(stored.ttlSeconds()), stored.rememberMe());
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
