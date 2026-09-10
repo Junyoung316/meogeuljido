@@ -240,7 +240,7 @@
     const timer = setInterval(() => {
       unlockResendBtn.textContent = `${remaining}초 후 다시 시도할 수 있어요`;
       remaining -= 1;
-      if (remaining < 0) {
+      if (remaining <= 0) {
         clearInterval(timer);
         unlockResendBtn.disabled = false;
         unlockResendBtn.textContent = '코드를 받지 못하셨나요? 재발송';

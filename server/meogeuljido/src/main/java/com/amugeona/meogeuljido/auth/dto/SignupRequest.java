@@ -1,5 +1,6 @@
 package com.amugeona.meogeuljido.auth.dto;
 
+import com.amugeona.meogeuljido.user.NicknamePolicy;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -10,7 +11,7 @@ public record SignupRequest(
         String email,
 
         @NotBlank
-        @Size(min = 2, max = 12, message = "닉네임은 2~12자여야 합니다.")
+        @Size(min = NicknamePolicy.MIN_LENGTH, max = NicknamePolicy.MAX_LENGTH, message = NicknamePolicy.LENGTH_MESSAGE)
         String nickname,
 
         @NotBlank

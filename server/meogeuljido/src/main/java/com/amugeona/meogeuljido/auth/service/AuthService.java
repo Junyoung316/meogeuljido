@@ -17,9 +17,10 @@ import com.amugeona.meogeuljido.user.repository.UserRepository;
 import com.amugeona.meogeuljido.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,6 +79,10 @@ public class AuthService {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
+        if (userRepository.existsByNicknameIgnoreCase(request.nickname())) {
+            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+        }
+
         boolean verified = emailVerificationService.hasValidEmailToken(SIGNUP_TOKEN_PREFIX, request.email(), request.emailVerifiedToken());
 
         if (!verified) {
@@ -85,7 +90,17 @@ public class AuthService {
         }
 
         User user = User.create(request.email(), passwordEncoder.encode(request.password()), request.nickname());
-        userRepository.save(user);
+
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            /**
+             * 이 저장에서 발생하는 무결성 위반은 방금 사전 확인을 통과한 직후의 nickname이
+             * uq_users_nickname_active에 걸리는 경우뿐(email은 앞서 emailExists()로 이미 확인)
+             * 제약 이름을 몰라도 DUPLICATE_NICKNAME으로 확정 가능 - updateNickname()과 동일한 패턴
+             */
+            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+        }
 
         emailVerificationService.consumeEmailToken(SIGNUP_TOKEN_PREFIX, request.email());
 
@@ -124,7 +139,7 @@ public class AuthService {
             );
             rateLimitGuard.reset(attemptsKey);
             return (CustomUserDetails) authentication.getPrincipal();
-        } catch (AuthenticationException e) {
+        } catch (BadCredentialsException e) {
             long failureCount = rateLimitGuard.recordFailurePermanently(attemptsKey);
 
             if (failureCount >= MAX_LOGIN_ATTEMPTS) {
@@ -162,6 +177,9 @@ public class AuthService {
                 .map(JwtTokenProvider.RefreshTokenClaims::userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
+
         Optional<RefreshTokenValue> found = refreshTokenRepository.findAndInvalidate(userId);
         RefreshTokenValue stored = found.orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
@@ -173,9 +191,6 @@ public class AuthService {
             refreshTokenRepository.save(userId, stored.token(), Duration.ofSeconds(stored.ttlSeconds()), stored.rememberMe());
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
         Duration ttl = Duration.ofSeconds(stored.ttlSeconds());
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().name());
@@ -220,7 +235,7 @@ public class AuthService {
         refreshTokenRepository.delete(user.getId());
 
         eventPublisher.publishEvent(new AuditLogEvent(
-                user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화", Instant.now()
+                user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화)", Instant.now()
         ));
     }
 
