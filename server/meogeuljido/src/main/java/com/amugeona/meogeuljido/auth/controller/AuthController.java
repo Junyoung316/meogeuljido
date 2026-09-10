@@ -157,8 +157,7 @@ public class AuthController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser, HttpServletRequest request
     ) {
         authService.logout(authenticatedUser.getId(), extractBearerToken(request));
-        ResponseCookie expired = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
-                .httpOnly(true).secure(true).sameSite("Strict").path("/api/auth").maxAge(0).build();
+        ResponseCookie expired = buildRefreshTokenCookie("", true, Duration.ZERO);
 
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, expired.toString())

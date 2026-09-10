@@ -21,8 +21,12 @@ public class RefreshTokenRepository {
         );
     }
 
-    public Optional<RefreshTokenValue> find(Long userId) {
-        Object value = redisTemplate.opsForValue().get(KEY_PREFIX + userId);
+    /**
+     * 조회와 동시에 삭제(원자적 GETDEL) - 재발급은 "이번 한 번만 유효한 티켓을 소비"하는 구조
+     * 동시 요청 중 하나만 통과, 이미 소비된 토큰은 재사용되면 즉시 거부
+     */
+    public Optional<RefreshTokenValue> findAndInvalidate(Long userId) {
+        Object value = redisTemplate.opsForValue().getAndDelete(KEY_PREFIX + userId);
         return Optional.ofNullable((RefreshTokenValue) value);
     }
 

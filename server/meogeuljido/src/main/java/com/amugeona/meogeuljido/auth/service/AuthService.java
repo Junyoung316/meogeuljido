@@ -44,13 +44,6 @@ public class AuthService {
     private static final Duration RT_TTL_SESSION = Duration.ofHours(3);
     private static final int MAX_LOGIN_ATTEMPTS = 5;
 
-    /**
-     * 시간이 지나도 저절로 풀리지 앟음 - 이메일 인증(requestLoginUnlock/confirmLoginUnlock)만이
-     * 유일한 해제 경로, 이 TTL은 "보안 정책"이 아니라 Redis에 죽은 카운터가 무기한 남지 않도록 하는 순수한
-     * 정리 용도, 충분히 길게 잡아 실질적인 후회 수단이 되지 않게 함
-     */
-    private static final Duration LOGIN_FAIL_TTL = Duration.ofDays(1);
-
     private final UserRepository userRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -111,8 +104,7 @@ public class AuthService {
         String refreshToken = jwtTokenProvider.generateRefreshToken(principal.getId(), rtTtl);
         refreshTokenRepository.save(principal.getId(), refreshToken, rtTtl, request.rememberMe());
 
-        User user = userRepository.findById(principal.getId()).orElseThrow();
-        return new LoginResult(accessToken, refreshToken, rtTtl, request.rememberMe(), new LoginResponse.UserSummary(user.getId(), user.getNickname(), user.getRole().name()));
+        return new LoginResult(accessToken, refreshToken, rtTtl, request.rememberMe(), new LoginResponse.UserSummary(principal.getId(), principal.getNickname(), principal.getRole()));
     }
 
     private String loginFailKey(String email) {
@@ -130,7 +122,7 @@ public class AuthService {
             rateLimitGuard.reset(attemptsKey);
             return (CustomUserDetails) authentication.getPrincipal();
         } catch (AuthenticationException e) {
-            rateLimitGuard.recordFailure(attemptsKey, LOGIN_FAIL_TTL);
+            rateLimitGuard.recordFailure(attemptsKey);
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         }
     }
@@ -149,7 +141,7 @@ public class AuthService {
      */
     public void confirmLoginUnlock(String email, String code) {
         emailVerificationService.verifyCode(LOGIN_UNLOCK_CODE_PREFIX, email, code);
-        rateLimitGuard.reset(LOGIN_FAIL_PREFIX + email);
+        rateLimitGuard.reset(loginFailKey(email));
     }
 
     @Transactional
@@ -162,7 +154,7 @@ public class AuthService {
                 .map(JwtTokenProvider.RefreshTokenClaims::userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
-        RefreshTokenValue stored = refreshTokenRepository.find(userId)
+        RefreshTokenValue stored = refreshTokenRepository.findAndInvalidate(userId)
                 .filter(v -> v.token().equals(refreshTokenCookie))
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 

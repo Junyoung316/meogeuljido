@@ -30,15 +30,7 @@ public class EmailVerificationService {
      * 6자리 인증코드를 생성해 Redis에 저장하고 메일로 발송한다. 60초 쿨다운 내 재요청 시 예외
      */
     public void issueCode(String keyPrefix, String email, String subject, String bodyFormat) {
-        String cooldownKey = keyPrefix + "cooldown" + email;
-        Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(cooldownKey, "1", COOLDOWN);
-        if (Boolean.FALSE.equals(firstRequest)) {
-            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS);
-        }
-        String code = "%06d".formatted(SECURE_RANDOM.nextInt(1_000_000));
-        redisTemplate.opsForValue().set(keyPrefix + email, code, CODE_TTL);
-        rateLimitGuard.reset(attemptsKey(keyPrefix, email));
-        mailService.send(email, subject, bodyFormat.formatted(code));
+        issueCodeIfExists(keyPrefix, email, subject, bodyFormat, true);
     }
 
     /**
@@ -47,7 +39,7 @@ public class EmailVerificationService {
      * (발송 실패로 못 받은 코드 때문에 쿨다운에 갇히는 상황을 막기 위함)
      */
     public void issueCodeIfExists(String keyPrefix, String email, String subject, String bodyFormat, boolean exists) {
-        String cooldownKey = keyPrefix + "cooldown" + email;
+        String cooldownKey = keyPrefix + "cooldown:" + email;
         Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(cooldownKey, "1", COOLDOWN);
 
         if (Boolean.FALSE.equals(firstRequest)) {
