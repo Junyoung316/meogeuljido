@@ -12,6 +12,8 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class RateLimitGuard {
 
+    private static final Duration LOGIN_FAIL_MAX_TTL = Duration.ofDays(90);
+
     private final StringRedisTemplate redisTemplate;
 
     /**
@@ -31,6 +33,7 @@ public class RateLimitGuard {
      * 계속 잠겨 있어야 하는 용도(로그인 잠금 등)로 사용
      */
     public long recordFailurePermanently(String key) {
+        redisTemplate.opsForValue().setIfAbsent(key, "0", LOGIN_FAIL_MAX_TTL);
         Long count = redisTemplate.opsForValue().increment(key);
         return count == null ? 0 : count;
     }

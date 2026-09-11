@@ -16,6 +16,7 @@ import com.amugeona.meogeuljido.user.entity.User;
 import com.amugeona.meogeuljido.user.repository.UserRepository;
 import com.amugeona.meogeuljido.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -94,7 +96,8 @@ public class AuthService {
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException ex) {
-            if (emailExists(request.email())) {
+            String constraintName = extractConstraintName(ex);
+            if (constraintName != null && constraintName.contains("email")) {
                 throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
             throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
@@ -107,6 +110,13 @@ public class AuthService {
         ));
 
         return UserResponse.from(user);
+    }
+
+    private String extractConstraintName(DataIntegrityViolationException ex) {
+        if (ex.getCause() instanceof ConstraintViolationException cve) {
+            return cve.getConstraintName();
+        }
+        return null;
     }
 
     @Transactional
@@ -124,7 +134,7 @@ public class AuthService {
     }
 
     private String loginFailKey(String email) {
-        return LOGIN_FAIL_PREFIX + email.toLowerCase();
+        return LOGIN_FAIL_PREFIX + email.toLowerCase(Locale.ROOT);
     }
 
     private CustomUserDetails authenticate(String email, String password) {

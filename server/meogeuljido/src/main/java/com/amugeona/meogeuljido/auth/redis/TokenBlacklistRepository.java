@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,10 +24,6 @@ public class TokenBlacklistRepository {
         redisTemplate.opsForValue().set(KEY_PREFIX + accessToken, "1", ttl);
     }
 
-    public boolean isBlacklisted(String accessToken) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(KEY_PREFIX + accessToken));
-    }
-
     /**
      * 특정 토큰이 아니라 "이 시각 이전에 발급된 건 전부 무효"라는 기준선을 저장
      * TTL은 그 시점에 이미 발급된 AT가 자연 만료될 시간(액세스 토큰 최대 유효기간)만큼만 두면 충분
@@ -36,9 +33,21 @@ public class TokenBlacklistRepository {
         redisTemplate.opsForValue().set(INVALIDATE_BEFORE_PREFIX + userId, cutoff.toString(), accessTokenValidity);
     }
 
-    public boolean isIssuedBeforeInvalidation(Long userId, Instant issuedAt) {
-        String stored = redisTemplate.opsForValue().get(INVALIDATE_BEFORE_PREFIX + userId);
-        return stored != null && issuedAt.isBefore(Instant.parse(stored));
+    public boolean isRejected(String accessToken, Long userId, Instant issuedAt) {
+        List<String> values = redisTemplate.opsForValue().multiGet(
+                List.of(KEY_PREFIX + accessToken, INVALIDATE_BEFORE_PREFIX + userId)
+        );
+
+        if (values == null) {
+            return false;
+        }
+
+        if (values.get(0) != null) {
+            return true;
+        }
+
+        String invalidateBefore = values.get(1);
+        return invalidateBefore != null && issuedAt.isBefore(Instant.parse(invalidateBefore));
     }
 
 }

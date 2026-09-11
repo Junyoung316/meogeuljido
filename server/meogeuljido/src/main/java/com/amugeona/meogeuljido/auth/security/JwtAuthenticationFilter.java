@@ -28,9 +28,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = extractToken(request);
-        if (token != null && !tokenBlacklistRepository.isBlacklisted(token)) {
+        if (token != null) {
             jwtTokenProvider.parseAccessToken(token).ifPresent(claims -> {
-                if (tokenBlacklistRepository.isIssuedBeforeInvalidation(claims.userId(), claims.issuedAt())) {
+                if (tokenBlacklistRepository.isRejected(token, claims.userId(), claims.issuedAt())) {
                     return;
                 }
                CustomUserDetails principal = CustomUserDetails.fromClaims(claims.userId(), claims.role());
