@@ -30,6 +30,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
         if (token != null && !tokenBlacklistRepository.isBlacklisted(token)) {
             jwtTokenProvider.parseAccessToken(token).ifPresent(claims -> {
+                if (tokenBlacklistRepository.isIssuedBeforeInvalidation(claims.userId(), claims.issuedAt())) {
+                    return;
+                }
                CustomUserDetails principal = CustomUserDetails.fromClaims(claims.userId(), claims.role());
                var authentication = new UsernamePasswordAuthenticationToken(
                        principal, null, principal.getAuthorities()

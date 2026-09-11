@@ -94,11 +94,9 @@ public class AuthService {
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException ex) {
-            /**
-             * 이 저장에서 발생하는 무결성 위반은 방금 사전 확인을 통과한 직후의 nickname이
-             * uq_users_nickname_active에 걸리는 경우뿐(email은 앞서 emailExists()로 이미 확인)
-             * 제약 이름을 몰라도 DUPLICATE_NICKNAME으로 확정 가능 - updateNickname()과 동일한 패턴
-             */
+            if (emailExists(request.email())) {
+                throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            }
             throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
         }
 
@@ -180,15 +178,22 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
+        Long remainingTtlSeconds = refreshTokenRepository.getRemainingTtlSeconds(user.getId());
+
         Optional<RefreshTokenValue> found = refreshTokenRepository.findAndInvalidate(userId);
         RefreshTokenValue stored = found.orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
         if (!stored.token().equals(refreshTokenCookie)) {
             /**
-             * GETDEL이 이미 지워버린 값이 요청 토큰과 다름 = 다른 요청이 먼저 회전시킨 최신 토큰이었다는 뜻
-             * 그 값을 삭제된 채로 두면 방급 회전에 성공한 진짜 세션까지 로그아웃되므로 즉시 복원
+             * 복원 시엔 처음 발급 때의 명목상 전체 기간(stored.ttlSeconds())이 아니라
+             * 실제로 남아있던 TTL(remainingTtlSeconds)을 사용해야 만료 시계가 리셋되지 않음
+             * TTL 조회를 못 했을 때만(음수/null) 예전처럼 명목상 값으로 폴백
              */
-            refreshTokenRepository.save(userId, stored.token(), Duration.ofSeconds(stored.ttlSeconds()), stored.rememberMe());
+            Duration restoreTtl = (remainingTtlSeconds != null && remainingTtlSeconds > 0)
+                    ? Duration.ofSeconds(remainingTtlSeconds)
+                    : Duration.ofSeconds(stored.ttlSeconds());
+            refreshTokenRepository.save(userId, stored.token(), restoreTtl, stored.rememberMe());
+
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
 
@@ -233,6 +238,8 @@ public class AuthService {
 
         user.changePassword(passwordEncoder.encode(newPassword));
         refreshTokenRepository.delete(user.getId());
+
+        tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), Instant.now(), jwtTokenProvider.accessTokenValidity());
 
         eventPublisher.publishEvent(new AuditLogEvent(
                 user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화)", Instant.now()

@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.function.Function;
@@ -63,7 +64,8 @@ public class JwtTokenProvider {
             return new AccessTokenClaims(
                     Long.valueOf(claims.getSubject()),
                     claims.get(CLAIM_ROLE, String.class),
-                    Duration.ofMillis(Math.max(remainingMillis, 0))
+                    Duration.ofMillis(Math.max(remainingMillis, 0)),
+                    claims.getIssuedAt().toInstant()
             );
         });
     }
@@ -100,7 +102,11 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public record AccessTokenClaims(Long userId, String role, Duration remainingValidity) {
+    public record AccessTokenClaims(Long userId, String role, Duration remainingValidity, Instant issuedAt) {
+    }
+
+    public Duration accessTokenValidity() {
+        return ACCESS_TOKEN_VALIDITY;
     }
 
     public record RefreshTokenClaims(Long userId, Duration remainingValidity) {

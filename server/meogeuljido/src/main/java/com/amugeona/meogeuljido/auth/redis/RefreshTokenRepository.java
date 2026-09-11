@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Repository
 @RequiredArgsConstructor
@@ -20,6 +21,11 @@ public class RefreshTokenRepository {
                 KEY_PREFIX + userId, new RefreshTokenValue(token, ttl.getSeconds(), rememberMe), ttl
         );
     }
+
+    public Long getRemainingTtlSeconds(Long userId) {
+        return redisTemplate.getExpire(KEY_PREFIX + userId, TimeUnit.SECONDS);
+    }
+
 
     /**
      * 조회와 동시에 삭제(원자적 GETDEL) - 재발급은 "이번 한 번만 유효한 티켓을 소비"하는 구조
