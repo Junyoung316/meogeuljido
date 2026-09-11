@@ -41,9 +41,10 @@ public class RateLimitGuard {
     /**
      * 실패 시 호출 - 카운터를 1 증가시키고, 첫 실패일 때만 TTL을 검
      */
-    public void recordFailureWithExpiry(String key, Duration window) {
+    public long recordFailureWithExpiry(String key, Duration window) {
         redisTemplate.opsForValue().setIfAbsent(key, "0", window);
-        redisTemplate.opsForValue().increment(key);
+        Long count = redisTemplate.opsForValue().increment(key);
+        return count == null ? 0 : count;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.amugeona.meogeuljido.auth.service;
 
+import com.amugeona.meogeuljido.auth.EmailNormalizer;
 import com.amugeona.meogeuljido.auth.dto.LoginRequest;
 import com.amugeona.meogeuljido.auth.dto.LoginResponse;
 import com.amugeona.meogeuljido.auth.dto.SignupRequest;
@@ -134,7 +135,7 @@ public class AuthService {
     }
 
     private String loginFailKey(String email) {
-        return LOGIN_FAIL_PREFIX + email.toLowerCase(Locale.ROOT);
+        return LOGIN_FAIL_PREFIX + EmailNormalizer.normalize(email);
     }
 
     private CustomUserDetails authenticate(String email, String password) {
@@ -249,6 +250,7 @@ public class AuthService {
         refreshTokenRepository.delete(user.getId());
 
         tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), Instant.now(), jwtTokenProvider.accessTokenValidity());
+        rateLimitGuard.reset(loginFailKey(email));
 
         eventPublisher.publishEvent(new AuditLogEvent(
                 user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화)", Instant.now()

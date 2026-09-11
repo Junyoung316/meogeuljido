@@ -1,5 +1,6 @@
 package com.amugeona.meogeuljido.auth.service;
 
+import com.amugeona.meogeuljido.auth.EmailNormalizer;
 import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
 import com.amugeona.meogeuljido.common.mail.MailService;
@@ -40,7 +41,7 @@ public class EmailVerificationService {
      * (발송 실패로 못 받은 코드 때문에 쿨다운에 갇히는 상황을 막기 위함)
      */
     public void issueCodeIfExists(String keyPrefix, String email, String subject, String bodyFormat, boolean exists) {
-        String normalizedEmail = email.toLowerCase(Locale.ROOT);
+        String normalizedEmail = EmailNormalizer.normalize(email);
         String cooldownKey = keyPrefix + "cooldown:" + normalizedEmail;
         Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(cooldownKey, "1", COOLDOWN);
 
@@ -67,14 +68,19 @@ public class EmailVerificationService {
      * 코드가 일치하면 소비(삭제), 불일치/만료 시 예외, 5회 연속 오답이면 코드 재발급 전까지 잠금
      */
     public void verifyCode(String keyPrefix, String email, String code) {
-        email = email.toLowerCase(Locale.ROOT);
+        email = EmailNormalizer.normalize(email);
         String attemptsKey = attemptsKey(keyPrefix, email);
         rateLimitGuard.checkNotLocked(attemptsKey, MAX_VERIFY_ATTEMPTS, ErrorCode.TOO_MANY_REQUESTS);
 
         String key = keyPrefix + email;
         String stored = redisTemplate.opsForValue().get(key);
         if (stored == null || !stored.equals(code)) {
-            rateLimitGuard.recordFailureWithExpiry(attemptsKey, CODE_TTL);
+            long failureCount = rateLimitGuard.recordFailureWithExpiry(attemptsKey, CODE_TTL);
+
+            if (failureCount >=  MAX_VERIFY_ATTEMPTS) {
+                throw new CustomException(ErrorCode.TOO_MANY_REQUESTS);
+            }
+
             throw new CustomException(ErrorCode.CODE_MISMATCH);
         }
         rateLimitGuard.reset(attemptsKey);
@@ -85,20 +91,20 @@ public class EmailVerificationService {
      *  이메일 -> 토큰 방향 저장(후속 요청이 이메일을 함께 보내는 흐름, 예: 회원가입)
      */
     public String issueTokenKeyedByEmail(String keyPrefix, String email, Duration ttl) {
-        email = email.toLowerCase(Locale.ROOT);
+        email = EmailNormalizer.normalize(email);
         String token = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(keyPrefix + email, token, ttl);
         return token;
     }
 
     public boolean hasValidEmailToken(String keyPrefix, String email, String token) {
-        email = email.toLowerCase(Locale.ROOT);
+        email = EmailNormalizer.normalize(email);
         String stored = redisTemplate.opsForValue().get(keyPrefix + email);
         return stored != null && stored.equals(token);
     }
 
     public void consumeEmailToken(String keyPrefix, String email) {
-        email = email.toLowerCase(Locale.ROOT);
+        email = EmailNormalizer.normalize(email);
         redisTemplate.delete(keyPrefix + email);
     }
 
