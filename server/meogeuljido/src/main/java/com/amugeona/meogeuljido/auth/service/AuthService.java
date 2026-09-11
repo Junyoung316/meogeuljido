@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -37,6 +36,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class AuthService {
 
+    private static final Duration NONEXISTENT_EMAIL_LOCK_TTL = Duration.ofDays(1);
     private static final String SIGNUP_CODE_PREFIX = "signup:verify:";
     private static final String SIGNUP_TOKEN_PREFIX = "signup:verified:";
     private static final String RESET_CODE_PREFIX = "password-reset:verify:";
@@ -98,10 +98,16 @@ public class AuthService {
             userRepository.save(user);
         } catch (DataIntegrityViolationException ex) {
             String constraintName = extractConstraintName(ex);
+
             if (constraintName != null && constraintName.contains("email")) {
                 throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
-            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+
+            if (constraintName != null && constraintName.contains("nickname")) {
+                throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+            }
+
+            throw ex;
         }
 
         emailVerificationService.consumeEmailToken(SIGNUP_TOKEN_PREFIX, request.email());
@@ -149,7 +155,9 @@ public class AuthService {
             rateLimitGuard.reset(attemptsKey);
             return (CustomUserDetails) authentication.getPrincipal();
         } catch (BadCredentialsException e) {
-            long failureCount = rateLimitGuard.recordFailurePermanently(attemptsKey);
+            long failureCount = emailExists(email)
+                    ? rateLimitGuard.recordFailurePermanently(attemptsKey)
+                    : rateLimitGuard.recordFailureWithExpiry(attemptsKey, NONEXISTENT_EMAIL_LOCK_TTL);
 
             if (failureCount >= MAX_LOGIN_ATTEMPTS) {
                 throw new CustomException(ErrorCode.LOGIN_LOCKED);
