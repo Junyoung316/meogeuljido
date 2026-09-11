@@ -1,5 +1,6 @@
 package com.amugeona.meogeuljido.auth.dto;
 
+import com.amugeona.meogeuljido.auth.PasswordPolicy;
 import com.amugeona.meogeuljido.user.NicknamePolicy;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +16,7 @@ public record SignupRequest(
         String nickname,
 
         @NotBlank
-        @Size(min = 8, message = "비밀번호는 8자 이상이어야 합니다.")
+        @Size(min = PasswordPolicy.MIN_PASSWORD_LENGTH, max = PasswordPolicy.MAX_PASSWORD_LENGTH, message = PasswordPolicy.LENGTH_MESSAGE)
         String password,
 
         @NotBlank

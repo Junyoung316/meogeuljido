@@ -188,26 +188,25 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
-        Long remainingTtlSeconds = refreshTokenRepository.getRemainingTtlSeconds(user.getId());
-
         Optional<RefreshTokenValue> found = refreshTokenRepository.findAndInvalidate(userId);
         RefreshTokenValue stored = found.orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
         if (!stored.token().equals(refreshTokenCookie)) {
             /**
-             * 복원 시엔 처음 발급 때의 명목상 전체 기간(stored.ttlSeconds())이 아니라
-             * 실제로 남아있던 TTL(remainingTtlSeconds)을 사용해야 만료 시계가 리셋되지 않음
-             * TTL 조회를 못 했을 때만(음수/null) 예전처럼 명목상 값으로 폴백
+             * stored는 findAndInvalidate() 한 번으로 원자적으로 얻은 값이라, 이 값의 expiresAt은
+             * 그 시점 기준 실제 만료 시각 그대로임 - 별도 조회 없이 바로 남은 시간을 계산할 수 있고,
+             * 그 사이 다른 요청이 끼어들 틈 자체가 없음(다른 세대의 토큰을 잘못 복원할 여지가 없음)
              */
-            Duration restoreTtl = (remainingTtlSeconds != null && remainingTtlSeconds > 0)
-                    ? Duration.ofSeconds(remainingTtlSeconds)
-                    : Duration.ofSeconds(stored.ttlSeconds());
-            refreshTokenRepository.save(userId, stored.token(), restoreTtl, stored.rememberMe());
+            Duration restoreTtl = Duration.between(Instant.now(), stored.expiresAt());
+
+            if (restoreTtl.isPositive()) {
+                refreshTokenRepository.save(userId, stored.token(), restoreTtl, stored.rememberMe());
+            }
 
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
 
-        Duration ttl = Duration.ofSeconds(stored.ttlSeconds());
+        Duration ttl = stored.rememberMe() ? RT_TTL_REMEMBER : RT_TTL_SESSION;
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getRole().name());
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), ttl);
         refreshTokenRepository.save(user.getId(), newRefreshToken, ttl, stored.rememberMe());

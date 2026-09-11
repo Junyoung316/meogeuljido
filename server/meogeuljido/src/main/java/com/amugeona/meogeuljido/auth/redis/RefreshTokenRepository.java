@@ -5,6 +5,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -18,14 +19,9 @@ public class RefreshTokenRepository {
 
     public void save(Long userId, String token, Duration ttl, boolean rememberMe) {
         redisTemplate.opsForValue().set(
-                KEY_PREFIX + userId, new RefreshTokenValue(token, ttl.getSeconds(), rememberMe), ttl
+                KEY_PREFIX + userId, new RefreshTokenValue(token, Instant.now().plus(ttl), rememberMe), ttl
         );
     }
-
-    public Long getRemainingTtlSeconds(Long userId) {
-        return redisTemplate.getExpire(KEY_PREFIX + userId, TimeUnit.SECONDS);
-    }
-
 
     /**
      * 조회와 동시에 삭제(원자적 GETDEL) - 재발급은 "이번 한 번만 유효한 티켓을 소비"하는 구조
@@ -40,6 +36,6 @@ public class RefreshTokenRepository {
         redisTemplate.delete(KEY_PREFIX + userId);
     }
 
-    public record RefreshTokenValue(String token, long ttlSeconds, boolean rememberMe) {}
+    public record RefreshTokenValue(String token, Instant expiresAt, boolean rememberMe) {}
 
 }

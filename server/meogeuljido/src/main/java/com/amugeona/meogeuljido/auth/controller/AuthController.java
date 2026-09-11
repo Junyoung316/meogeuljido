@@ -6,6 +6,7 @@ import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
 import com.amugeona.meogeuljido.common.exception.GlobalExceptionHandler.ErrorResponse;
 import com.amugeona.meogeuljido.common.security.AuthenticatedUser;
+import com.amugeona.meogeuljido.common.security.BearerTokenExtractor;
 import com.amugeona.meogeuljido.user.dto.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -217,13 +218,8 @@ public class AuthController {
     }
 
     private String extractBearerToken(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
-        }
-
-        throw new CustomException(ErrorCode.UNAUTHORIZED);
+        return BearerTokenExtractor.extract(request)
+                .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
     }
 
 }

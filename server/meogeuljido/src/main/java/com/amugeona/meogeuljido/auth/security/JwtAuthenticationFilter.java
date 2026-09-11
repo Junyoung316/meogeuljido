@@ -1,6 +1,7 @@
 package com.amugeona.meogeuljido.auth.security;
 
 import com.amugeona.meogeuljido.auth.redis.TokenBlacklistRepository;
+import com.amugeona.meogeuljido.common.security.BearerTokenExtractor;
 import com.amugeona.meogeuljido.common.security.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,16 +19,13 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String HEADER = "Authorization";
-    private static final String PREFIX = "Bearer ";
-
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String token = extractToken(request);
+        String token = BearerTokenExtractor.extract(request).orElse(null);
         if (token != null) {
             jwtTokenProvider.parseAccessToken(token).ifPresent(claims -> {
                 if (tokenBlacklistRepository.isRejected(token, claims.userId(), claims.issuedAt())) {
@@ -43,11 +41,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String extractToken(HttpServletRequest request) {
-        String header = request.getHeader(HEADER);
-        if(header != null && header.startsWith(PREFIX)) {
-            return header.substring(PREFIX.length());
-        }
-        return null;
-    }
 }

@@ -1,5 +1,6 @@
 package com.amugeona.meogeuljido.auth.dto;
 
+import com.amugeona.meogeuljido.auth.PasswordPolicy;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -8,7 +9,7 @@ public record PasswordResetConfirmRequest(
         String resetToken,
 
         @NotBlank
-        @Size(min = 8, message = "비밀번호는 8자 이상이어야 합니다.")
+        @Size(min = PasswordPolicy.MIN_PASSWORD_LENGTH, max = PasswordPolicy.MAX_PASSWORD_LENGTH, message = PasswordPolicy.LENGTH_MESSAGE)
         String newPassword
 ) {
 }
