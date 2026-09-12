@@ -110,7 +110,7 @@ public class UserService {
 
         refreshTokenRepository.delete(userId);
 
-        tokenBlacklistRepository.blacklistAllIssuedBefore(userId, Instant.now(), jwtTokenProvider.accessTokenValidity());
+        tokenBlacklistRepository.blacklistAllIssuedBefore(userId, jwtTokenProvider.accessTokenValidity());
 
         eventPublisher.publishEvent(new AuditLogEvent(
            userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WithdrawalPolicy.GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()

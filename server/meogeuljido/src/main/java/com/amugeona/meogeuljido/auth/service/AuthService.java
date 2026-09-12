@@ -291,7 +291,7 @@ public class AuthService {
 
         refreshTokenRepository.delete(user.getId());
 
-        tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), Instant.now(), jwtTokenProvider.accessTokenValidity());
+        tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), jwtTokenProvider.accessTokenValidity());
         rateLimitGuard.reset(loginFailKey(email));
 
         eventPublisher.publishEvent(new AuditLogEvent(
