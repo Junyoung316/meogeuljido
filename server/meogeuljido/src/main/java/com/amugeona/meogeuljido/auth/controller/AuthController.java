@@ -36,8 +36,8 @@ public class AuthController {
     @Operation(summary = "이메일 중복확인",
             description = "회원가입 화면에서 실시간으로 사용 가능 여부를 확인한다. 인증 불필요(Public).")
     @GetMapping("/check-email")
-    public ResponseEntity<EmailAvailabilityResponse> checkEmail(@RequestParam String email) {
-        return ResponseEntity.ok(new EmailAvailabilityResponse(!authService.emailExists(email)));
+    public ResponseEntity<EmailAvailabilityResponse> checkEmail(@RequestParam String email, HttpServletRequest request) {
+        return ResponseEntity.ok(new EmailAvailabilityResponse(authService.isEmailAvailable(email, request.getRemoteAddr())));
     }
 
     @Operation(summary = "회원가입 인증코드 발송",

@@ -36,7 +36,9 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class AuthService {
 
-    private static final Duration NONEXISTENT_EMAIL_LOCK_TTL = Duration.ofDays(1);
+    private static final String CHECK_EMAIL_PREFIX = "check-email:";
+    private static final int MAX_CHECK_EMAIL_PER_WINDOW = 20;
+    private static final Duration CHECK_EMAIL_WINDOW = Duration.ofMinutes(1);
     private static final String SIGNUP_CODE_PREFIX = "signup:verify:";
     private static final String SIGNUP_TOKEN_PREFIX = "signup:verified:";
     private static final String RESET_CODE_PREFIX = "password-reset:verify:";
@@ -62,6 +64,11 @@ public class AuthService {
 
     public boolean emailExists(String email) {
         return userRepository.existsByEmailIgnoreCase(email);
+    }
+
+    public boolean isEmailAvailable(String email, String clientIp) {
+        rateLimitGuard.checkAndCountAttempt(CHECK_EMAIL_PREFIX + clientIp, MAX_CHECK_EMAIL_PER_WINDOW, CHECK_EMAIL_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+        return !emailExists(email);
     }
 
     public void sendSignupVerificationCode(String email) {

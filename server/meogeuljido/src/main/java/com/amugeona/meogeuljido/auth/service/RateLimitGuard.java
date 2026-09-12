@@ -51,4 +51,14 @@ public class RateLimitGuard {
         redisTemplate.delete(key);
     }
 
+    /**
+     * 성공/실패 여부와 무관하게 호출 자체를 카운트
+     * - recordFailureWithExpiry()와 달리 "실패했을 때만"이 아니라 매 호출마다 실행,
+     * 한도 초과 시 즉시 예외를 던짐
+     */
+    public void checkAndCountAttempt(String key, int maxAttempts, Duration window, ErrorCode errorCode) {
+        checkNotLocked(key, maxAttempts, errorCode);
+        recordFailureWithExpiry(key, window);
+    }
+
 }
