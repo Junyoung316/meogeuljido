@@ -234,7 +234,7 @@
   // ---------- 재발송 카운트다운 ----------
   const unlockResendBtn = document.getElementById('unlock-resend-btn');
   unlockResendBtn.addEventListener('click', () => {
-    let remaining = 60;
+    let remaining = 30;
     unlockResendBtn.disabled = true;
     unlockResendBtn.classList.replace('text-primary', 'text-muted2');
     const timer = setInterval(() => {

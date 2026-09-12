@@ -19,7 +19,7 @@ import java.util.UUID;
 public class EmailVerificationService {
 
     private static final Duration CODE_TTL = Duration.ofMinutes(5);
-    private static final Duration COOLDOWN = Duration.ofSeconds(60);
+    private static final Duration COOLDOWN = Duration.ofSeconds(30);
     private static final int MAX_VERIFY_ATTEMPTS = 5;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 

@@ -4,6 +4,7 @@ import com.amugeona.meogeuljido.auth.PasswordPolicy;
 import com.amugeona.meogeuljido.user.NicknamePolicy;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record SignupRequest(
@@ -17,6 +18,7 @@ public record SignupRequest(
 
         @NotBlank
         @Size(min = PasswordPolicy.MIN_PASSWORD_LENGTH, max = PasswordPolicy.MAX_PASSWORD_LENGTH, message = PasswordPolicy.LENGTH_MESSAGE)
+        @Pattern(regexp = PasswordPolicy.ALLOWED_CHARS_PATTERN, message = PasswordPolicy.ALLOWED_CHARS_MESSAGE)
         String password,
 
         @NotBlank

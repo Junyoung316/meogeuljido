@@ -2,7 +2,7 @@ package com.amugeona.meogeuljido.user.dto;
 
 import com.amugeona.meogeuljido.user.entity.User;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 public record UserProfileResponse(
         Long id,
@@ -12,7 +12,7 @@ public record UserProfileResponse(
         int reviewCount,
         int bookmarkCount,
         int restaurantCount,
-        OffsetDateTime createdAt
+        Instant createdAt
 ) {
     public static UserProfileResponse of(User user, ActivityCounts counts) {
         return new UserProfileResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole().name(), counts.reviewCount(),  counts.bookmarkCount(), counts.restaurantCount(), user.getCreatedAt());

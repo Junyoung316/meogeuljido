@@ -92,7 +92,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
 
-        User user = User.create(request.email(), passwordEncoder.encode(request.password()), request.nickname());
+        User user = User.create(request.email(), encodePassword(request.password()), request.nickname());
 
         try {
             userRepository.save(user);
@@ -155,12 +155,12 @@ public class AuthService {
             rateLimitGuard.reset(attemptsKey);
             return (CustomUserDetails) authentication.getPrincipal();
         } catch (BadCredentialsException e) {
-            long failureCount = emailExists(email)
-                    ? rateLimitGuard.recordFailurePermanently(attemptsKey)
-                    : rateLimitGuard.recordFailureWithExpiry(attemptsKey, NONEXISTENT_EMAIL_LOCK_TTL);
+            if (emailExists(email)) {
+                long failureCount = rateLimitGuard.recordFailurePermanently(attemptsKey);
 
-            if (failureCount >= MAX_LOGIN_ATTEMPTS) {
-                throw new CustomException(ErrorCode.LOGIN_LOCKED);
+                if (failureCount >= MAX_LOGIN_ATTEMPTS) {
+                    throw new CustomException(ErrorCode.LOGIN_LOCKED);
+                }
             }
 
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
@@ -254,7 +254,7 @@ public class AuthService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
-        user.changePassword(passwordEncoder.encode(newPassword));
+        user.changePassword(encodePassword(newPassword));
         refreshTokenRepository.delete(user.getId());
 
         tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), Instant.now(), jwtTokenProvider.accessTokenValidity());
@@ -263,6 +263,14 @@ public class AuthService {
         eventPublisher.publishEvent(new AuditLogEvent(
                 user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화)", Instant.now()
         ));
+    }
+
+    private String encodePassword(String rawPassword) {
+        try {
+            return passwordEncoder.encode(rawPassword);
+        } catch(IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "비밀번호에 사용할 수 없는 문자가 포함되어 있습니다.");
+        }
     }
 
     public record LoginResult(
