@@ -282,6 +282,9 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
 
         user.changePassword(encodePassword(newPassword));
+
+        userRepository.flush();
+
         refreshTokenRepository.delete(user.getId());
 
         tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), Instant.now(), jwtTokenProvider.accessTokenValidity());

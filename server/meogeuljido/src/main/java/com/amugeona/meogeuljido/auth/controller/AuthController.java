@@ -15,16 +15,19 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 
 @Tag(name = "Auth", description = "회원가입, 로그인, 토큰 재발급, 로그아웃, 비밀번호 재설정, 로그인 잠금 해제")
+@Validated
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -37,7 +40,7 @@ public class AuthController {
     @Operation(summary = "이메일 중복확인",
             description = "회원가입 화면에서 실시간으로 사용 가능 여부를 확인한다. 인증 불필요(Public).")
     @GetMapping("/check-email")
-    public ResponseEntity<EmailAvailabilityResponse> checkEmail(@RequestParam String email, HttpServletRequest request) {
+    public ResponseEntity<EmailAvailabilityResponse> checkEmail(@RequestParam @NotBlank @Email String email, HttpServletRequest request) {
         return ResponseEntity.ok(new EmailAvailabilityResponse(authService.isEmailAvailable(email, request.getRemoteAddr())));
     }
 
