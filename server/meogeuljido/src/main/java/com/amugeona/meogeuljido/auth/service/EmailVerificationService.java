@@ -42,11 +42,9 @@ public class EmailVerificationService {
     public void issueCodeIfExists(String keyPrefix, String email, String subject, String bodyFormat, boolean exists) {
         String normalizedEmail = EmailNormalizer.normalize(email);
         String cooldownKey = keyPrefix + "cooldown:" + normalizedEmail;
-        Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(cooldownKey, "1", COOLDOWN);
 
-        if (Boolean.FALSE.equals(firstRequest)) {
-            throw new CustomException(ErrorCode.TOO_MANY_REQUESTS);
-        }
+        rateLimitGuard.checkAndCountAttempt(cooldownKey, 1, COOLDOWN, ErrorCode.TOO_MANY_REQUESTS);
+
         if (!exists) {
             return;
         }

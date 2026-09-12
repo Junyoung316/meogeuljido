@@ -76,7 +76,7 @@ public class AuthService {
 
     public void sendSignupVerificationCode(String email, String clientIp) {
 
-        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+        checkEmailCodeRequestRate(clientIp);
 
         if (emailExists(email)) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -193,7 +193,7 @@ public class AuthService {
      */
     public void requestLoginUnlock(String email, String clientIp) {
 
-        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+        checkEmailCodeRequestRate(clientIp);
 
         emailVerificationService.issueCodeIfExists(
                 LOGIN_UNLOCK_CODE_PREFIX, email, "[먹을지도] 로그인 잠금 해제 인증코드", "인증코드: %s (5분 이내 입력해주세요.)", emailExists(email)
@@ -258,7 +258,7 @@ public class AuthService {
 
     public void sendPasswordResetCode(String email, String clientIp){
 
-        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+        checkEmailCodeRequestRate(clientIp);
 
         emailVerificationService.issueCodeIfExists(
                 RESET_CODE_PREFIX, email, "[먹을지도] 비밀번호 재설정 인증코드", "인증코드: %s (5분 이내 입력해주세요.)", emailExists(email)
@@ -266,6 +266,10 @@ public class AuthService {
         /**
          * 가입 여부와 무관하게 항상 204- 존재하지 않으면 조용히 아무 것도 하지 않음(이메일 존재 여부 비노출)
          */
+    }
+
+    private void checkEmailCodeRequestRate(String clientIp) {
+        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
     }
 
     public String verifyPasswordResetCode(String email, String code) {
