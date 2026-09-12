@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -49,8 +50,8 @@ public class AuthController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/signup/verify/request")
-    public ResponseEntity<Void> requestSignupVerification(@Valid @RequestBody EmailRequest request) {
-        authService.sendSignupVerificationCode(request.email());
+    public ResponseEntity<Void> requestSignupVerification(@Valid @RequestBody EmailRequest request, HttpServletRequest httpRequest) {
+        authService.sendSignupVerificationCode(request.email(), httpRequest.getRemoteAddr());
         return ResponseEntity.noContent().build();
     }
 
@@ -112,8 +113,8 @@ public class AuthController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/login/unlock/request")
-    public ResponseEntity<Void> requestLoginUnlock(@Valid @RequestBody EmailRequest request) {
-        authService.requestLoginUnlock(request.email());
+    public ResponseEntity<Void> requestLoginUnlock(@Valid @RequestBody EmailRequest request, HttpServletRequest httpRequest) {
+        authService.requestLoginUnlock(request.email(), httpRequest.getRemoteAddr());
         return ResponseEntity.noContent().build();
     }
 
@@ -172,8 +173,8 @@ public class AuthController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/password-reset/request")
-    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody EmailRequest request) {
-        authService.sendPasswordResetCode(request.email());
+    public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody EmailRequest request, HttpServletRequest httpRequest) {
+        authService.sendPasswordResetCode(request.email(), httpRequest.getRemoteAddr());
         return ResponseEntity.noContent().build();
     }
 

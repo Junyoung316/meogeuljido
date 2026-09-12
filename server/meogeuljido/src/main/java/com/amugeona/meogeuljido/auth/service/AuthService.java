@@ -50,6 +50,9 @@ public class AuthService {
     private static final Duration RT_TTL_REMEMBER = Duration.ofDays(14);
     private static final Duration RT_TTL_SESSION = Duration.ofHours(3);
     private static final int MAX_LOGIN_ATTEMPTS = 5;
+    private static final String EMAIL_CODE_REQUEST_PREFIX = "email-code-request:";
+    private static final int MAX_EMAIL_CODE_REQUEST_PER_WINDOW = 10;
+    private static final Duration EMAIL_CODE_REQUEST_WINDOW = Duration.ofMinutes(1);
 
     private final UserRepository userRepository;
     private final UserService userService;
@@ -71,7 +74,10 @@ public class AuthService {
         return !emailExists(email);
     }
 
-    public void sendSignupVerificationCode(String email) {
+    public void sendSignupVerificationCode(String email, String clientIp) {
+
+        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+
         if (emailExists(email)) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
@@ -185,7 +191,10 @@ public class AuthService {
     /**
      * 로그인 잠금 해제용 인증코드 발송, 계정 존재 여부와 무관하게 항상 조용히 끝남
      */
-    public void requestLoginUnlock(String email) {
+    public void requestLoginUnlock(String email, String clientIp) {
+
+        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+
         emailVerificationService.issueCodeIfExists(
                 LOGIN_UNLOCK_CODE_PREFIX, email, "[먹을지도] 로그인 잠금 해제 인증코드", "인증코드: %s (5분 이내 입력해주세요.)", emailExists(email)
         );
@@ -247,7 +256,10 @@ public class AuthService {
                 });
     }
 
-    public void sendPasswordResetCode(String email){
+    public void sendPasswordResetCode(String email, String clientIp){
+
+        rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+
         emailVerificationService.issueCodeIfExists(
                 RESET_CODE_PREFIX, email, "[먹을지도] 비밀번호 재설정 인증코드", "인증코드: %s (5분 이내 입력해주세요.)", emailExists(email)
         );
