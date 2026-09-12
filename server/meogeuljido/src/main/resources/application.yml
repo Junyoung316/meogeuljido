@@ -44,6 +44,9 @@ management:
 jwt:
   secret: ${JWT_SECRET}
 
+server:
+  forward-headers-strategy: framework
+
 springdoc:
   api-docs:
     path: /v3/api-docs

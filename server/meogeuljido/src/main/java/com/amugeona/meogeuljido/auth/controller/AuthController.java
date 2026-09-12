@@ -41,11 +41,11 @@ public class AuthController {
     }
 
     @Operation(summary = "회원가입 인증코드 발송",
-            description = "6자리 인증코드를 생성해 Redis에 5분 TTL로 저장하고 이메일로 발송한다. 60초 쿨다운 내 재요청 시 거부.")
+            description = "6자리 인증코드를 생성해 Redis에 5분 TTL로 저장하고 이메일로 발송한다. 30초 쿨다운 내 재요청 시 거부.")
     @ApiResponses({
             @ApiResponse(responseCode = "409", description = "EMAIL_ALREADY_EXISTS — 이미 가입된 이메일",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "429", description = "TOO_MANY_REQUESTS — 60초 쿨다운 내 재요청",
+            @ApiResponse(responseCode = "429", description = "TOO_MANY_REQUESTS — 30초 쿨다운 내 재요청",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/signup/verify/request")
@@ -108,7 +108,7 @@ public class AuthController {
     @Operation(summary = "로그인 잠금 해제 인증코드 발송",
             description = "가입 여부와 무관하게 항상 204로 응답한다(이메일 존재 여부 비노출, password-reset/request와 동일 정책). 실제로 잠긴 상태인지 여부와도 무관하게 가입된 이메일이면 항상 발송한다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "429", description = "TOO_MANY_REQUESTS — 60초 쿨다운 내 재요청",
+            @ApiResponse(responseCode = "429", description = "TOO_MANY_REQUESTS — 30초 쿨다운 내 재요청",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/login/unlock/request")
@@ -168,7 +168,7 @@ public class AuthController {
     @Operation(summary = "비밀번호 재설정 인증코드 발송",
             description = "가입 여부와 무관하게 항상 204로 응답한다(이메일 존재 여부 비노출). 실제 발송은 가입된 이메일에 한해 처리.")
     @ApiResponses({
-            @ApiResponse(responseCode = "429", description = "TOO_MANY_REQUESTS — 60초 쿨다운 내 재요청",
+            @ApiResponse(responseCode = "429", description = "TOO_MANY_REQUESTS — 30초 쿨다운 내 재요청",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/password-reset/request")

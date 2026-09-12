@@ -28,7 +28,7 @@ public class EmailVerificationService {
     private final RateLimitGuard rateLimitGuard;
 
     /**
-     * 6자리 인증코드를 생성해 Redis에 저장하고 메일로 발송한다. 60초 쿨다운 내 재요청 시 예외
+     * 6자리 인증코드를 생성해 Redis에 저장하고 메일로 발송한다. 30초 쿨다운 내 재요청 시 예외
      */
     public void issueCode(String keyPrefix, String email, String subject, String bodyFormat) {
         issueCodeIfExists(keyPrefix, email, subject, bodyFormat, true);
@@ -117,12 +117,7 @@ public class EmailVerificationService {
     }
 
     public Optional<String> consumeTokenKeyedByToken(String keyPrefix, String token) {
-        String key = keyPrefix + token;
-        String email = redisTemplate.opsForValue().get(key);
-        if (email != null) {
-            redisTemplate.delete(key);
-        }
-        return Optional.ofNullable(email);
+        return Optional.ofNullable(redisTemplate.opsForValue().getAndDelete(keyPrefix + token));
     }
 
     private String attemptsKey(String keyPrefix, String email) {

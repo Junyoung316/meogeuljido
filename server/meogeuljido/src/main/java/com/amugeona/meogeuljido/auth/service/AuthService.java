@@ -137,7 +137,15 @@ public class AuthService {
     public LoginResult login(LoginRequest request) {
         CustomUserDetails principal = authenticate(request.email(), request.password());
 
-        userService.recordLogAndCancelPendingWithdrawal(principal.getId());
+        try {
+            userService.recordLogAndCancelPendingWithdrawal(principal.getId());
+        } catch (CustomException ex) {
+            if (ex.getErrorCode() != ErrorCode.NOT_FOUND) {
+                throw ex;
+            }
+
+            throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
+        }
 
         String accessToken = jwtTokenProvider.generateAccessToken(principal.getId(), principal.getRole());
         Duration rtTtl = request.rememberMe() ? RT_TTL_REMEMBER : RT_TTL_SESSION;

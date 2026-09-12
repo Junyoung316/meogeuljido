@@ -1,8 +1,11 @@
 package com.amugeona.meogeuljido.user.service;
 
+import com.amugeona.meogeuljido.auth.redis.RefreshTokenRepository;
+import com.amugeona.meogeuljido.auth.redis.TokenBlacklistRepository;
 import com.amugeona.meogeuljido.common.event.AuditLogEvent;
 import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
+import com.amugeona.meogeuljido.common.security.JwtTokenProvider;
 import com.amugeona.meogeuljido.user.WithdrawalPolicy;
 import com.amugeona.meogeuljido.user.dto.UserProfileResponse;
 import com.amugeona.meogeuljido.user.dto.UserProfileResponse.ActivityCounts;
@@ -32,6 +35,10 @@ public class UserService {
     private final UserWithdrawalRequestRepository userWithdrawalRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
+
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     public UserProfileResponse getMyProfile(Long userId) {
         User user = getActiveUserOrThrow(userId);
@@ -101,17 +108,13 @@ public class UserService {
                 UserWithdrawalRequest.create(userId, request.reasonCategory(), request.reasonDetail())
         );
 
+        refreshTokenRepository.delete(userId);
+
+        tokenBlacklistRepository.blacklistAllIssuedBefore(userId, Instant.now(), jwtTokenProvider.accessTokenValidity());
+
         eventPublisher.publishEvent(new AuditLogEvent(
            userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WithdrawalPolicy.GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()
         ));
-
-        // TODO(auth 도메인 구현 후 연동): 유예기간 중에도 이후 요청부터는 로그인/토큰 재발급을
-        // 막아야 할지(즉시 로그아웃 처리) 여부는 auth 구현 시 별도 결정 — 지금은 계정이 살아있는
-        // 상태이므로 기존 Access/Refresh Token은 만료 전까지 그대로 유효하다.
-
-        // TODO(auth 도메인 구현 후 연동): auth.redis.RefreshTokenRepository에서 이 userId의
-        // Refresh Token을 삭제하고, 현재 요청의 Access Token을 auth.redis.TokenBlacklistRepository에
-        // 등록해야 한다(api-spec.md §3 DELETE /api/users/me 동작 설명).
 
     }
 
