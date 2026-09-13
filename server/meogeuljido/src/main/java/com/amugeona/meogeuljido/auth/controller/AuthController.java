@@ -162,7 +162,7 @@ public class AuthController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser, HttpServletRequest request
     ) {
         authService.logout(authenticatedUser.getId(), extractBearerToken(request));
-        ResponseCookie expired = buildRefreshTokenCookie("", true, Duration.ZERO);
+        ResponseCookie expired = expiredRefreshTokenCookie();
 
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, expired.toString())
@@ -224,6 +224,11 @@ public class AuthController {
     private String extractBearerToken(HttpServletRequest request) {
         return BearerTokenExtractor.extract(request)
                 .orElseThrow(() -> new CustomException(ErrorCode.UNAUTHORIZED));
+    }
+
+    private ResponseCookie expiredRefreshTokenCookie() {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+                .httpOnly(true).secure(true).sameSite("Strict").path("/api/auth").maxAge(Duration.ZERO).build();
     }
 
 }

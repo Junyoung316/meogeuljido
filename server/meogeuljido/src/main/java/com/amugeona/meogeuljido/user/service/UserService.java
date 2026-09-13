@@ -1,11 +1,9 @@
 package com.amugeona.meogeuljido.user.service;
 
-import com.amugeona.meogeuljido.auth.redis.RefreshTokenRepository;
-import com.amugeona.meogeuljido.auth.redis.TokenBlacklistRepository;
+import com.amugeona.meogeuljido.auth.service.AuthService;
 import com.amugeona.meogeuljido.common.event.AuditLogEvent;
 import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
-import com.amugeona.meogeuljido.common.security.JwtTokenProvider;
 import com.amugeona.meogeuljido.user.WithdrawalPolicy;
 import com.amugeona.meogeuljido.user.dto.UserProfileResponse;
 import com.amugeona.meogeuljido.user.dto.UserProfileResponse.ActivityCounts;
@@ -36,9 +34,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
 
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final TokenBlacklistRepository tokenBlacklistRepository;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthService authService;
 
     public UserProfileResponse getMyProfile(Long userId) {
         User user = getActiveUserOrThrow(userId);
@@ -108,9 +104,7 @@ public class UserService {
                 UserWithdrawalRequest.create(userId, request.reasonCategory(), request.reasonDetail())
         );
 
-        refreshTokenRepository.delete(userId);
-
-        tokenBlacklistRepository.blacklistAllIssuedBefore(userId, jwtTokenProvider.accessTokenValidity());
+        authService.revokeAllSessions(userId);
 
         eventPublisher.publishEvent(new AuditLogEvent(
            userId, "UPDATE", "USER", userId, "탈퇴요청 접수 (%d일 후 확정 예정) · 사유: %s %s".formatted(WithdrawalPolicy.GRACE_DAYS, request.reasonCategory(), describeDetail(request.reasonDetail())).strip(), Instant.now()

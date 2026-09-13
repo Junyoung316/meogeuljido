@@ -277,6 +277,11 @@ public class AuthService {
         return emailVerificationService.issueTokenKeyedByToken(RESET_TOKEN_PREFIX, email, RESET_TOKEN_TTL);
     }
 
+    public void revokeAllSessions(Long userId) {
+        refreshTokenRepository.delete(userId);
+        tokenBlacklistRepository.blacklistAllIssuedBefore(userId, jwtTokenProvider.accessTokenValidity());
+    }
+
     @Transactional
     public void confirmPasswordReset(String resetToken, String newPassword) {
         String email = emailVerificationService.consumeTokenKeyedByToken(RESET_TOKEN_PREFIX, resetToken)
@@ -289,9 +294,8 @@ public class AuthService {
 
         userRepository.flush();
 
-        refreshTokenRepository.delete(user.getId());
+        revokeAllSessions(user.getId());
 
-        tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), jwtTokenProvider.accessTokenValidity());
         rateLimitGuard.reset(loginFailKey(email));
 
         eventPublisher.publishEvent(new AuditLogEvent(
