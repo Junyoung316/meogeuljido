@@ -43,7 +43,7 @@ public class EmailVerificationService {
         String normalizedEmail = EmailNormalizer.normalize(email);
         String cooldownKey = keyPrefix + "cooldown:" + normalizedEmail;
 
-        rateLimitGuard.checkAndCountAttempt(cooldownKey, 1, COOLDOWN, ErrorCode.TOO_MANY_REQUESTS);
+        rateLimitGuard.checkAndMarkOnce(cooldownKey, COOLDOWN, ErrorCode.TOO_MANY_REQUESTS);
 
         if (!exists) {
             return;

@@ -61,4 +61,17 @@ public class RateLimitGuard {
         recordFailureWithExpiry(key, window);
     }
 
+    /**
+     * 이 윈도우에서 최초 1회만 원자적으로 허용한다(Redis RETNX 자체가 원자적이라
+     * check-then-increment 같은 경쟁 상태가 없음) - "여러 번을 세는" checkAndCountAttempt와
+     * 달리 "한 번이라도 통과했는지"만 판단하는 쿨다운류 용도로 사용
+     */
+    public void checkAndMarkOnce(String key, Duration window, ErrorCode errorCode) {
+        Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(key, "1", window);
+
+        if (Boolean.FALSE.equals(firstRequest)) {
+            throw new CustomException(errorCode);
+        }
+    }
+
 }
