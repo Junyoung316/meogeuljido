@@ -2,16 +2,17 @@ package com.amugeona.meogeuljido.user.dto;
 
 import com.amugeona.meogeuljido.user.entity.User;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 public record UserResponse(
         Long id,
         String email,
         String nickname,
         String role,
-        Instant createdAt
+        OffsetDateTime createdAt
 ) {
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole().name(), user.getCreatedAt());
+        return new UserResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole().name(), user.getCreatedAt().atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime());
     }
 }
