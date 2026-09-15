@@ -18,6 +18,7 @@ import com.amugeona.meogeuljido.user.entity.WithdrawalReasonCategory;
 import com.amugeona.meogeuljido.user.repository.UserRepository;
 import com.amugeona.meogeuljido.user.repository.UserWithdrawalRequestRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -127,6 +129,7 @@ public class UserService {
         User user = getActiveUserOrThrow(userId);
         boolean hadPendingWithdrawal = user.getWithdrawalRequestedAt() != null;
         user.recordLogin();
+        log.info("로그인 성공: userId={}", userId);
 
         if (hadPendingWithdrawal) {
             userWithdrawalRequestRepository
