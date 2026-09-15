@@ -100,8 +100,11 @@ public class AuthController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthService.LoginResult result = authService.login(request);
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        AuthService.LoginResult result = authService.login(request, httpRequest.getRemoteAddr());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(
                         result.refreshToken(), result.rememberMe(), result.ttl()).toString()

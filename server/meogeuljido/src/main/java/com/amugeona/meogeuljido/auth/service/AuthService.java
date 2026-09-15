@@ -43,6 +43,9 @@ public class AuthService {
     private static final String SIGNUP_TOKEN_PREFIX = "signup:verified:";
     private static final String RESET_CODE_PREFIX = "password-reset:verify:";
     private static final String RESET_TOKEN_PREFIX = "password-reset:token:";
+    private static final String LOGIN_IP_PREFIX = "login-ip:";
+    private static final int MAX_LOGIN_ATTEMPTS_PER_IP = 30;
+    private static final Duration LOGIN_IP_WINDOW = Duration.ofMinutes(1);
     private static final String LOGIN_FAIL_PREFIX = "login:fail:";
     private static final String LOGIN_UNLOCK_CODE_PREFIX = "login:unlock:";
     private static final Duration SIGNUP_TOKEN_TTL = Duration.ofMinutes(30);
@@ -140,7 +143,9 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResult login(LoginRequest request) {
+    public LoginResult login(LoginRequest request, String clientIp) {
+        rateLimitGuard.checkAndCountAttempt(LOGIN_IP_PREFIX + clientIp, MAX_LOGIN_ATTEMPTS_PER_IP, LOGIN_IP_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
+
         CustomUserDetails principal = authenticate(request.email(), request.password());
 
         try {
