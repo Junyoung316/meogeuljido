@@ -213,9 +213,14 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    private ResponseCookie buildRefreshTokenCookie(String token, boolean rememberMe, Duration ttl) {
-        var builder = ResponseCookie.from(REFRESH_TOKEN_COOKIE, token)
+    private ResponseCookie.ResponseCookieBuilder refreshTokenCookieBuilder(String token) {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE, token)
                 .httpOnly(true).secure(true).sameSite("Strict").path("/api/auth");
+    }
+
+    private ResponseCookie buildRefreshTokenCookie(String token, boolean rememberMe, Duration ttl) {
+
+        var builder = refreshTokenCookieBuilder(token);
 
         if (rememberMe) {
             builder.maxAge(ttl);
@@ -230,8 +235,7 @@ public class AuthController {
     }
 
     private ResponseCookie expiredRefreshTokenCookie() {
-        return ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
-                .httpOnly(true).secure(true).sameSite("Strict").path("/api/auth").maxAge(Duration.ZERO).build();
+        return refreshTokenCookieBuilder("").maxAge(Duration.ZERO).build();
     }
 
 }

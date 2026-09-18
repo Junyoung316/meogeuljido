@@ -44,7 +44,7 @@ public class TokenBlacklistRepository {
         );
 
         if (values == null) {
-            return false;
+            return true;
         }
 
         if (values.get(0) != null) {
