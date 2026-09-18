@@ -299,13 +299,13 @@ public class AuthService {
 
         userRepository.flush();
 
-        revokeAllSessions(user.getId());
-
-        rateLimitGuard.reset(loginFailKey(email));
-
         eventPublisher.publishEvent(new AuditLogEvent(
                 user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화)", Instant.now()
         ));
+
+        revokeAllSessions(user.getId());
+
+        rateLimitGuard.reset(loginFailKey(email));
     }
 
     private String encodePassword(String rawPassword) {

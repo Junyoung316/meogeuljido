@@ -1,10 +1,7 @@
 package com.amugeona.meogeuljido.user.batch;
 
-import com.amugeona.meogeuljido.auth.redis.RefreshTokenRepository;
-import com.amugeona.meogeuljido.auth.redis.TokenBlacklistRepository;
 import com.amugeona.meogeuljido.common.event.AuditLogEvent;
 import com.amugeona.meogeuljido.common.event.WithdrawalCompletedEvent;
-import com.amugeona.meogeuljido.common.security.JwtTokenProvider;
 import com.amugeona.meogeuljido.user.WithdrawalPolicy;
 import com.amugeona.meogeuljido.user.entity.User;
 import com.amugeona.meogeuljido.user.entity.UserWithdrawalRequest;
@@ -37,10 +34,6 @@ public class AccountLifecycleScheduler {
     private final UserWithdrawalRequestRepository userWithdrawalRequestRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final DormantWarningSender dormantWarningSender;
-
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final TokenBlacklistRepository tokenBlacklistRepository;
-    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 자진 탈퇴 유예기간(7일) 만료자를 실제로 탈퇴 처리
@@ -158,9 +151,6 @@ public class AccountLifecycleScheduler {
         String email = user.getEmail();
         String nickname = user.getNickname();
         user.withdraw();
-
-        refreshTokenRepository.delete(user.getId());
-        tokenBlacklistRepository.blacklistAllIssuedBefore(user.getId(), jwtTokenProvider.accessTokenValidity());
 
         eventPublisher.publishEvent(new AuditLogEvent(
            user.getId(), "DELETE", "USER", user.getId(), auditSummary, Instant.now()
