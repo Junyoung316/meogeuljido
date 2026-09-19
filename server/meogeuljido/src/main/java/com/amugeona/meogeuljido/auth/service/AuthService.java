@@ -26,6 +26,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -209,6 +210,7 @@ public class AuthService {
     /**
      * 코드가 맞으면 로그인 실패 카운터를 리셋 후 잠금 해제
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void confirmLoginUnlock(String email, String code) {
         emailVerificationService.verifyCode(LOGIN_UNLOCK_CODE_PREFIX, email, code);
         rateLimitGuard.reset(loginFailKey(email));
@@ -253,7 +255,7 @@ public class AuthService {
         return new ReissueResult(newAccessToken, newRefreshToken, ttl, stored.rememberMe());
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void logout(Long userId, String accessToken) {
         refreshTokenRepository.delete(userId);
         jwtTokenProvider.parseAccessToken(accessToken)
@@ -278,6 +280,7 @@ public class AuthService {
         rateLimitGuard.checkAndCountAttempt(EMAIL_CODE_REQUEST_PREFIX + clientIp, MAX_EMAIL_CODE_REQUEST_PER_WINDOW, EMAIL_CODE_REQUEST_WINDOW, ErrorCode.TOO_MANY_REQUESTS);
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public String verifyPasswordResetCode(String email, String code) {
         emailVerificationService.verifyCode(RESET_CODE_PREFIX, email, code);
         return emailVerificationService.issueTokenKeyedByToken(RESET_TOKEN_PREFIX, email, RESET_TOKEN_TTL);
