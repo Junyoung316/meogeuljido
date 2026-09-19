@@ -1,6 +1,7 @@
 package com.amugeona.meogeuljido.user.batch;
 
 import com.amugeona.meogeuljido.common.event.AuditLogEvent;
+import com.amugeona.meogeuljido.common.event.SessionRevocationRequestedEvent;
 import com.amugeona.meogeuljido.common.event.WithdrawalCompletedEvent;
 import com.amugeona.meogeuljido.user.WithdrawalPolicy;
 import com.amugeona.meogeuljido.user.entity.User;
@@ -155,6 +156,9 @@ public class AccountLifecycleScheduler {
         eventPublisher.publishEvent(new AuditLogEvent(
            user.getId(), "DELETE", "USER", user.getId(), auditSummary, Instant.now()
         ));
+
+        eventPublisher.publishEvent(new SessionRevocationRequestedEvent(user.getId()));
+
         eventPublisher.publishEvent(new WithdrawalCompletedEvent(
                 user.getId(), email, nickname, reason
         ));

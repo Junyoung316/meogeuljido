@@ -13,6 +13,7 @@ import com.amugeona.meogeuljido.common.exception.CustomException;
 import com.amugeona.meogeuljido.common.exception.ErrorCode;
 import com.amugeona.meogeuljido.common.security.JwtTokenProvider;
 import com.amugeona.meogeuljido.user.dto.UserResponse;
+import com.amugeona.meogeuljido.common.event.SessionRevocationRequestedEvent;
 import com.amugeona.meogeuljido.user.entity.User;
 import com.amugeona.meogeuljido.user.repository.UserRepository;
 import com.amugeona.meogeuljido.user.service.UserService;
@@ -303,7 +304,7 @@ public class AuthService {
                 user.getId(), "UPDATE", "USER", user.getId(), "비밀번호 재설정(기존 세션 전량 무효화)", Instant.now()
         ));
 
-        revokeAllSessions(user.getId());
+        eventPublisher.publishEvent(new SessionRevocationRequestedEvent(user.getId()));
 
         rateLimitGuard.reset(loginFailKey(email));
     }
