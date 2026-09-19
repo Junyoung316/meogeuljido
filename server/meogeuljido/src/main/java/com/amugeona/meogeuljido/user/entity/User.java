@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 
 @Getter
@@ -52,11 +53,11 @@ public class User {
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    private Instant createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
-    private OffsetDateTime updatedAt;
+    private Instant updatedAt;
 
     private User(String email, String passwordHash, String nickname) {
         this.email = email;
@@ -80,6 +81,13 @@ public class User {
     }
 
     /**
+     * 비밀번호 재설정 확정 시 auth가 호출
+     */
+    public void changePassword(String newPassword) {
+        this.passwordHash = newPassword;
+    }
+
+    /**
      * 자진 탈퇴 요청 - 즉시 삭제하지 않고 유예기간 시작 시각만 기록
      */
     public void requestWithdrawal() {
@@ -87,7 +95,7 @@ public class User {
     }
 
     /**
-     * 유예기간/휴면 판정 배치가 실제로 계정을 탈퇴처리할 때 호출
+     * 유예기간/휴면 판정 배치가 실제로 계정을 탈퇴 처리할 때 호출
      */
     public void withdraw() {
         this.deletedAt = OffsetDateTime.now();

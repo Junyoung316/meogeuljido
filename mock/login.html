@@ -37,53 +37,123 @@
   </header>
 
   <div class="flex-1 flex flex-col justify-center px-6 -mt-10 lg:mt-0 lg:py-8">
-    <div class="mb-8">
-      <p class="text-[24px] font-bold text-ink">먹을지도</p>
-      <p class="text-[13px] text-muted2 mt-1.5">오늘 뭐 먹지? 고민은 그만, 아무거나 먹으러 가자</p>
-    </div>
 
-    <form class="flex flex-col gap-3">
-      <div>
-        <label class="text-[13px] font-semibold text-ink">이메일</label>
-        <input type="email" placeholder="you@example.com" class="mt-1.5 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
+    <!-- ============ 로그인 폼 (기본) ============ -->
+    <section id="login-form-section">
+      <div class="mb-8">
+        <p class="text-[24px] font-bold text-ink">먹을지도</p>
+        <p class="text-[13px] text-muted2 mt-1.5">오늘 뭐 먹지? 고민은 그만, 아무거나 먹으러 가자</p>
       </div>
 
-      <div>
-        <label class="text-[13px] font-semibold text-ink">비밀번호</label>
-        <div class="mt-1.5 relative">
-          <input id="password-input" type="password" placeholder="비밀번호를 입력해주세요" class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
-          <button type="button" id="toggle-password" aria-label="비밀번호 표시" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted2">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+      <form class="flex flex-col gap-3">
+        <div>
+          <label class="text-[13px] font-semibold text-ink">이메일</label>
+          <input id="login-email" type="email" placeholder="you@example.com" class="mt-1.5 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
         </div>
+
+        <div>
+          <label class="text-[13px] font-semibold text-ink">비밀번호</label>
+          <div class="mt-1.5 relative">
+            <input id="password-input" type="password" placeholder="비밀번호를 입력해주세요" class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
+            <button type="button" id="toggle-password" aria-label="비밀번호 표시" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted2">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <!-- 5회 연속 실패 시 잠김(423 LOGIN_LOCKED, api-spec.md §2). 시간 경과로는 안 풀리고
+               이메일 인증(아래 잠금 해제 흐름)으로만 해제된다 -->
+          <p id="login-error" class="hidden text-[12px] font-semibold text-red-500 mt-1.5"></p>
+        </div>
+
+        <div class="text-right">
+          <a href="password-reset.html" class="text-[12px] text-muted2 font-medium">비밀번호를 잊으셨나요?</a>
+        </div>
+
+        <!-- 로그인은 단일 엔드포인트(POST /api/auth/login)이며, 응답의 role에 따라 프론트가 일반/관리자 화면으로 분기한다.
+             실제 로그인 화면은 하나뿐이므로, 목업에서는 이 분기를 시연하기 위한 데모 토글만 둔다(운영 화면에는 노출되지 않음). -->
+        <label class="flex items-center gap-2 mt-1">
+          <input type="checkbox" id="demo-admin-toggle" class="w-4 h-4 rounded accent-primary" />
+          <span class="text-[12px] text-muted2">관리자 계정으로 로그인 (데모: role=ADMIN 응답 시뮬레이션)</span>
+        </label>
+
+        <button type="button" id="login-submit" class="mt-2 w-full rounded-xl bg-primary text-white text-[15px] font-bold py-3.5">
+          로그인
+        </button>
+      </form>
+
+      <div class="flex items-center gap-3 my-6">
+        <div class="flex-1 h-px bg-hairline"></div>
+        <span class="text-[12px] text-muted2">또는</span>
+        <div class="flex-1 h-px bg-hairline"></div>
       </div>
 
-      <div class="text-right">
-        <a href="password-reset.html" class="text-[12px] text-muted2 font-medium">비밀번호를 잊으셨나요?</a>
-      </div>
+      <p class="text-center text-[13px] text-muted2">
+        아직 계정이 없으신가요?
+        <a href="signup.html" class="text-primary font-bold">회원가입</a>
+      </p>
 
-      <!-- 로그인은 단일 엔드포인트(POST /api/auth/login)이며, 응답의 role에 따라 프론트가 일반/관리자 화면으로 분기한다.
-           실제 로그인 화면은 하나뿐이므로, 목업에서는 이 분기를 시연하기 위한 데모 토글만 둔다(운영 화면에는 노출되지 않음). -->
-      <label class="flex items-center gap-2 mt-1">
-        <input type="checkbox" id="demo-admin-toggle" class="w-4 h-4 rounded accent-primary" />
-        <span class="text-[12px] text-muted2">관리자 계정으로 로그인 (데모: role=ADMIN 응답 시뮬레이션)</span>
-      </label>
-
-      <button type="button" id="login-submit" class="mt-2 w-full rounded-xl bg-primary text-white text-[15px] font-bold py-3.5">
-        로그인
+      <!-- 데모 전용 진입점 — 실제 화면에는 없음. 로그인을 5번 틀리는 과정을 반복하지 않고
+           바로 잠금 화면을 확인할 수 있도록 하는 목업 편의 기능 -->
+      <button type="button" id="demo-locked-trigger" class="mt-5 w-full text-center text-[11px] text-muted2 underline underline-offset-2">
+        데모: 비밀번호 5회 오류로 잠긴 상태 보기
       </button>
-    </form>
+    </section>
 
-    <div class="flex items-center gap-3 my-6">
-      <div class="flex-1 h-px bg-hairline"></div>
-      <span class="text-[12px] text-muted2">또는</span>
-      <div class="flex-1 h-px bg-hairline"></div>
-    </div>
+    <!-- ============ 잠금 상태 ============ -->
+    <section id="locked-section" class="hidden">
+      <div class="flex flex-col items-center text-center pt-2 pb-1">
+        <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+        <p class="text-[18px] font-bold text-ink mt-4">로그인이 잠겼어요</p>
+        <p class="text-[13px] text-muted2 mt-1.5 leading-relaxed">비밀번호를 5회 연속 틀려 계정이 잠겼어요.<br />시간이 지나도 자동으로 풀리지 않아요 — 이메일 인증 후 다시 로그인할 수 있어요.</p>
+      </div>
 
-    <p class="text-center text-[13px] text-muted2">
-      아직 계정이 없으신가요?
-      <a href="signup.html" class="text-primary font-bold">회원가입</a>
-    </p>
+      <div class="mt-6 rounded-2xl bg-neutral-100 px-4 py-3.5">
+        <p class="text-[12px] text-muted2">인증코드를 받을 이메일</p>
+        <p id="locked-email-display" class="text-[14px] font-semibold text-ink mt-1">you@example.com</p>
+      </div>
+
+      <button type="button" id="request-unlock-btn" class="mt-6 w-full rounded-xl bg-primary text-white text-[15px] font-bold py-3.5">
+        인증코드 받기
+      </button>
+      <button type="button" id="locked-back-btn" class="mt-3 w-full text-center text-[13px] font-semibold text-muted2">
+        로그인 화면으로 돌아가기
+      </button>
+    </section>
+
+    <!-- ============ 잠금 해제 — 인증코드 입력 ============ -->
+    <section id="unlock-code-section" class="hidden">
+      <p class="text-[18px] font-bold text-ink">이메일로 받은 인증코드를 입력해주세요</p>
+      <p id="unlock-code-desc" class="text-[13px] text-muted2 mt-1.5">입력하신 이메일로 6자리 코드를 보냈어요</p>
+
+      <div class="mt-6">
+        <label class="text-[13px] font-semibold text-ink">인증코드</label>
+        <input id="unlock-code" type="text" inputmode="numeric" maxlength="6" placeholder="6자리 숫자 입력" class="mt-1.5 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] tracking-[0.3em] outline-none focus:border-primary" />
+        <p id="unlock-code-error" class="hidden text-[12px] font-semibold text-red-500 mt-1.5">6자리 숫자를 모두 입력해주세요</p>
+      </div>
+
+      <button type="button" id="unlock-resend-btn" class="mt-3 text-[12px] font-semibold text-primary">
+        코드를 받지 못하셨나요? 재발송
+      </button>
+
+      <button type="button" id="unlock-code-submit" disabled class="mt-6 w-full rounded-xl bg-navborder text-white text-[15px] font-bold py-3.5 transition-colors">
+        확인
+      </button>
+    </section>
+
+    <!-- ============ 잠금 해제 완료 ============ -->
+    <section id="unlock-complete-section" class="hidden pt-4 flex flex-col items-center text-center">
+      <div class="w-16 h-16 rounded-full bg-promo flex items-center justify-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF6000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <p class="text-[18px] font-bold text-ink mt-5">잠금이 해제됐어요</p>
+      <p class="text-[13px] text-muted2 mt-1.5">다시 로그인해주세요</p>
+
+      <button type="button" id="unlock-complete-login-btn" class="mt-8 w-full rounded-xl bg-primary text-white text-[15px] font-bold py-3.5">
+        로그인하러 가기
+      </button>
+    </section>
+
   </div>
 </div>
 
@@ -93,10 +163,97 @@
     input.type = input.type === 'password' ? 'text' : 'password';
   });
 
-  // 로그인 응답의 role에 따른 라우팅 분기 데모: USER → 지도 홈, ADMIN → 관리자 대시보드
+  // ---------- 화면 전환 ----------
+  function showSection(id) {
+    ['login-form-section', 'locked-section', 'unlock-code-section', 'unlock-complete-section'].forEach(sectionId => {
+      document.getElementById(sectionId).classList.add('hidden');
+    });
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  // ---------- 로그인 실패 카운트 → 5회째 잠금(423 LOGIN_LOCKED) ----------
+  // 데모이므로 "비밀번호가 항상 틀렸다"고 가정하고 카운트만 쌓는다. 실제로는 서버가 판단한다.
+  let loginFailCount = 0;
+  const loginError = document.getElementById('login-error');
+
+  function enterLockedState() {
+    const email = document.getElementById('login-email').value || 'you@example.com';
+    document.getElementById('locked-email-display').textContent = email;
+    showSection('locked-section');
+  }
+
   document.getElementById('login-submit').addEventListener('click', function () {
     const isAdmin = document.getElementById('demo-admin-toggle').checked;
+    // 데모 규칙: 비밀번호란이 비어있으면 "실패"로 취급해 잠금 카운트를 시연할 수 있게 한다.
+    // 실제로는 서버가 이메일/비밀번호 일치 여부를 판단해 401 INVALID_CREDENTIALS를 내려준다.
+    if (document.getElementById('password-input').value.length === 0) {
+      loginFailCount += 1;
+      if (loginFailCount >= 5) {
+        enterLockedState();
+        return;
+      }
+      loginError.textContent = `비밀번호가 일치하지 않아요 (${loginFailCount}/5회 실패 시 잠김)`;
+      loginError.classList.remove('hidden');
+      return;
+    }
+    loginError.classList.add('hidden');
     window.location.href = isAdmin ? 'admin-restaurants.html' : 'index.html';
+  });
+
+  document.getElementById('demo-locked-trigger').addEventListener('click', enterLockedState);
+
+  document.getElementById('locked-back-btn').addEventListener('click', function () {
+    showSection('login-form-section');
+  });
+
+  // ---------- 잠금 해제 요청 → 인증코드 입력 단계 ----------
+  document.getElementById('request-unlock-btn').addEventListener('click', function () {
+    const email = document.getElementById('locked-email-display').textContent;
+    document.getElementById('unlock-code-desc').textContent = `${email}로 6자리 코드를 보냈어요`;
+    showSection('unlock-code-section');
+  });
+
+  // ---------- 인증코드 검증 ----------
+  const unlockCode = document.getElementById('unlock-code');
+  const unlockCodeSubmit = document.getElementById('unlock-code-submit');
+  const unlockCodeError = document.getElementById('unlock-code-error');
+  unlockCode.addEventListener('input', () => {
+    unlockCode.value = unlockCode.value.replace(/\D/g, '').slice(0, 6);
+    const valid = unlockCode.value.length === 6;
+    unlockCodeSubmit.disabled = !valid;
+    unlockCodeSubmit.classList.toggle('bg-primary', valid);
+    unlockCodeSubmit.classList.toggle('bg-navborder', !valid);
+    unlockCodeError.classList.toggle('hidden', valid || unlockCode.value.length === 0);
+  });
+  unlockCodeSubmit.addEventListener('click', () => {
+    if (unlockCodeSubmit.disabled) return;
+    loginFailCount = 0; // 잠금 해제 → 실패 카운터 초기화(login:fail:{email} 리셋과 동일한 의미)
+    showSection('unlock-complete-section');
+  });
+
+  // ---------- 재발송 카운트다운 ----------
+  const unlockResendBtn = document.getElementById('unlock-resend-btn');
+  unlockResendBtn.addEventListener('click', () => {
+    let remaining = 30;
+    unlockResendBtn.disabled = true;
+    unlockResendBtn.classList.replace('text-primary', 'text-muted2');
+    const timer = setInterval(() => {
+      unlockResendBtn.textContent = `${remaining}초 후 다시 시도할 수 있어요`;
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(timer);
+        unlockResendBtn.disabled = false;
+        unlockResendBtn.textContent = '코드를 받지 못하셨나요? 재발송';
+        unlockResendBtn.classList.replace('text-muted2', 'text-primary');
+      }
+    }, 1000);
+  });
+
+  // ---------- 해제 완료 → 로그인 폼으로 복귀(입력값 초기화) ----------
+  document.getElementById('unlock-complete-login-btn').addEventListener('click', function () {
+    document.getElementById('password-input').value = '';
+    loginError.classList.add('hidden');
+    showSection('login-form-section');
   });
 </script>
 </body>

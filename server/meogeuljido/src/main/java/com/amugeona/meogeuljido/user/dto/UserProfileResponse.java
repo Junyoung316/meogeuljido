@@ -3,6 +3,7 @@ package com.amugeona.meogeuljido.user.dto;
 import com.amugeona.meogeuljido.user.entity.User;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 public record UserProfileResponse(
         Long id,
@@ -15,7 +16,7 @@ public record UserProfileResponse(
         OffsetDateTime createdAt
 ) {
     public static UserProfileResponse of(User user, ActivityCounts counts) {
-        return new UserProfileResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole().name(), counts.reviewCount(),  counts.bookmarkCount(), counts.restaurantCount(), user.getCreatedAt());
+        return new UserProfileResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole().name(), counts.reviewCount(),  counts.bookmarkCount(), counts.restaurantCount(), user.getCreatedAt().atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime());
     }
 
     public record ActivityCounts(int reviewCount, int bookmarkCount, int restaurantCount) {}

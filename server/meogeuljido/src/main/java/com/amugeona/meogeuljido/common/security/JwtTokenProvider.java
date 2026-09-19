@@ -6,8 +6,10 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import javax.crypto.SecretKey;
 
@@ -47,6 +49,7 @@ public class JwtTokenProvider {
     private String generateToken(Long userId, String role, String type, Duration validity) {
         Date now = new Date();
         var builder = Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(userId))
                 .claim(CLAIM_TYPE, type)
                 .issuedAt(now)
@@ -58,9 +61,15 @@ public class JwtTokenProvider {
     }
 
     public Optional<AccessTokenClaims> parseAccessToken(String token) {
-        return parseTyped(token, TYPE_ACCESS, claims -> new AccessTokenClaims(
-                Long.valueOf(claims.getSubject()),
-                claims.get(CLAIM_ROLE, String.class)));
+        return parseTyped(token, TYPE_ACCESS, claims -> {
+            long remainingMillis = claims.getExpiration().getTime() - System.currentTimeMillis();
+            return new AccessTokenClaims(
+                    Long.valueOf(claims.getSubject()),
+                    claims.get(CLAIM_ROLE, String.class),
+                    Duration.ofMillis(Math.max(remainingMillis, 0)),
+                    claims.getIssuedAt().toInstant()
+            );
+        });
     }
 
     public Optional <RefreshTokenClaims> parseRefreshToken(String token) {
@@ -95,7 +104,11 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public record AccessTokenClaims(Long userId, String role) {
+    public record AccessTokenClaims(Long userId, String role, Duration remainingValidity, Instant issuedAt) {
+    }
+
+    public Duration accessTokenValidity() {
+        return ACCESS_TOKEN_VALIDITY;
     }
 
     public record RefreshTokenClaims(Long userId, Duration remainingValidity) {
