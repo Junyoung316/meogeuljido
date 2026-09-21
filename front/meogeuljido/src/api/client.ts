@@ -8,6 +8,7 @@ export const apiClient = axios.create({
    * refreshToken은 HttpOnly 쿠키로만 오가므로 모든 요청에 필요
    */
   withCredentials: true,
+  timeout: 10000,
 })
 
 apiClient.interceptors.request.use((config) => {

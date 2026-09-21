@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import * as authApi from '@/api/auth'
 import { useResendCooldown } from '@/composables/useResendCooldown'
+import PasswordToggleButton from '@/components/PasswordToggleButton.vue'
 import type { AxiosError } from 'axios'
 import type { ApiErrorBody } from '@/types/common'
 
@@ -94,11 +95,15 @@ async function submitUnlockCode() {
 
 const { cooldown: resendCooldown, start: startResendTimer } = useResendCooldown(30)
 
-function resendUnlockCode() {
+async function resendUnlockCode() {
   if (resendCooldown.value > 0) return
 
-  authApi.requestLoginUnlock(email.value).catch(() => {})
-  startResendTimer()
+  try {
+    await authApi.requestLoginUnlock(email.value)
+    startResendTimer()
+  } catch {
+    // 429(쿨다운) 등 실패 시 별도 안내 없이 재시도 유도 - 기존 정책 유지
+  }
 }
 
 function backToLogin() {
@@ -142,19 +147,7 @@ function backToLogin() {
               </label>
               <div class="mt-1.5 relative">
                 <input v-model="password" :type="showPassword ? 'text' : 'password'" required placeholder="비밀번호를 입력해주세요" class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
-                <button type="button" aria-label="비밀번호 표시" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-2 hover:text-ink transition-colors">
-                  <!-- 가려진 상태(기본): 뜬 눈 아이콘 -->
-                  <svg v-if="!showPassword" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <!-- 보이는 상태: 사선 눈(eye-off) 아이콘 -->
-                  <svg v-else width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                </button>
+                <PasswordToggleButton :visible="showPassword" @toggle="showPassword = !showPassword" />
               </div>
               <p v-if="loginError" class="text-[12px] font-semibold text-red-500 mt-1.5">{{ loginError }}</p>
             </div>

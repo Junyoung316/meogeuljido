@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import * as authApi from '@/api/auth'
 import { useResendCooldown } from '@/composables/useResendCooldown'
-import { isValidNickname, isValidPassword } from '@/utils/validators'
+import PasswordToggleButton from '@/components/PasswordToggleButton.vue'
+import { isValidEmail, isValidNickname, isValidPassword } from '@/utils/validators'
 import type { AxiosError } from 'axios'
 import type { ApiErrorBody } from '@/types/common'
 
@@ -35,6 +36,13 @@ const isCheckingEmail = ref(false)
 
 async function checkEmail() {
   if (!email.value || isCheckingEmail.value) return
+
+  if (!isValidEmail(email.value)) {
+    emailChecked.value = false
+    emailCheckError.value = '올바른 이메일 형식이 아니에요'
+    return
+  }
+
   isCheckingEmail.value = true
   try {
     const { data } = await authApi.checkEmail(email.value)
@@ -49,18 +57,20 @@ async function checkEmail() {
 
 const isSendingCode = ref(false)
 
-async function sendVerificationCode() {
-  if (isSendingCode.value) return
+async function sendVerificationCode(): Promise<boolean> {
+  if (isSendingCode.value) return false
   isSendingCode.value = true
   try {
     await authApi.requestSignupVerification(email.value)
     codeRequested.value = true
     verifyCode.value = ''
+    return true
   } catch (e) {
     if ((e as AxiosError<ApiErrorBody>).response?.data?.code === 'EMAIL_ALREADY_EXISTS') {
       emailChecked.value = false
       emailCheckError.value = '이미 사용 중인 이메일이에요'
     }
+    return false
   } finally {
     isSendingCode.value = false
   }
@@ -85,10 +95,12 @@ async function confirmVerificationCode() {
   }
 }
 
-function resendCode() {
+async function resendCode() {
   if (resendCooldown.value > 0) return
-  sendVerificationCode()
-  startResendTimer()
+
+  if (await sendVerificationCode()) {
+    startResendTimer()
+  }
 }
 
 // ---- 닉네임 / 비밀번호 ----
@@ -233,19 +245,7 @@ async function handleSubmit() {
             <div class="mt-1.5 relative">
               <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="8~64자, 영문/숫자/특수문자"
                 class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
-              <button type="button" aria-label="비밀번호 표시" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-2 hover:text-ink transition-colors">
-                  <!-- 가려진 상태(기본): 뜬 눈 아이콘 -->
-                  <svg v-if="!showPassword" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <!-- 보이는 상태: 사선 눈(eye-off) 아이콘 -->
-                  <svg v-else width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                </button>
+              <PasswordToggleButton :visible="showPassword" @toggle="showPassword = !showPassword" />
             </div>
             <p v-if="!passwordLengthValid" class="text-[12px] font-semibold text-red-500 mt-1.5">비밀번호는 8~64자, 영문/숫자/특수문자만 사용할 수 있어요</p>
           </div>
@@ -256,19 +256,7 @@ async function handleSubmit() {
             <div class="mt-1.5 relative">
               <input v-model="passwordConfirm" :type="showPasswordConfirm ? 'text' : 'password'" placeholder="비밀번호를 다시 입력해주세요"
                 class="w-full rounded-xl border border-hairline px-3.5 py-3 pr-11 text-[14px] outline-none focus:border-primary" />
-              <button type="button" aria-label="비밀번호 표시" @click="showPasswordConfirm = !showPasswordConfirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-2 hover:text-ink transition-colors">
-                  <!-- 가려진 상태(기본): 뜬 눈 아이콘 -->
-                  <svg v-if="!showPasswordConfirm" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <!-- 보이는 상태: 사선 눈(eye-off) 아이콘 -->
-                  <svg v-else width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                </button>
+              <PasswordToggleButton :visible="showPasswordConfirm" @toggle="showPasswordConfirm = !showPasswordConfirm" />
             </div>
             <p v-if="!passwordsMatch" class="text-[12px] font-semibold text-red-500 mt-1.5">비밀번호가 일치하지 않아요</p>
           </div>

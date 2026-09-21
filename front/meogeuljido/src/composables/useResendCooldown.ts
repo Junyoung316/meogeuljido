@@ -5,6 +5,7 @@ export function useResendCooldown(seconds: number) {
   let timer: ReturnType<typeof setInterval> | undefined
 
   function start() {
+    if (timer) clearInterval(timer)
     cooldown.value = seconds
     timer = setInterval(() => {
       cooldown.value -= 1

@@ -9,14 +9,6 @@
   --color-promo: #FCF4EE;
   --color-navborder: #D4D4D4;
 
-  /* -------------- */
-  --color-text: #222222;
-  --color-heading: #222222;
-  --color-border: #E5E5E5;
-  --color-background: #FFFFFF;
-  --section-gap: 160px;
-  /* -------------- */
-
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, system-ui, sans-serif;
   --shadow-floating: 0 4px 16px rgba(34, 34, 34, 0.12);
 }
