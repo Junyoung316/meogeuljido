@@ -19,7 +19,7 @@ import java.util.UUID;
 public class EmailVerificationService {
 
     private static final Duration CODE_TTL = Duration.ofMinutes(5);
-    private static final Duration COOLDOWN = Duration.ofSeconds(30);
+    private static final Duration COOLDOWN = Duration.ofSeconds(10);
     private static final int MAX_VERIFY_ATTEMPTS = 5;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -28,7 +28,7 @@ public class EmailVerificationService {
     private final RateLimitGuard rateLimitGuard;
 
     /**
-     * 6자리 인증코드를 생성해 Redis에 저장하고 메일로 발송한다. 30초 쿨다운 내 재요청 시 예외
+     * 6자리 인증코드를 생성해 Redis에 저장하고 메일로 발송한다. 10초 쿨다운 내 재요청 시 예외
      */
     public void issueCode(String keyPrefix, String email, String subject, String bodyFormat) {
         issueCodeIfExists(keyPrefix, email, subject, bodyFormat, true);
