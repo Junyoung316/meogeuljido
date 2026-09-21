@@ -61,6 +61,7 @@ async function requestUnlock() {
   try {
     await authApi.requestLoginUnlock(email.value)
     step.value = 'unlock-code'
+    startCodeExpiryTimer()
   } catch {
     /**
      * 429 TOO_MANY_REQUESTS 등 - 잠금 화면에 머무르게 두고 별도 안내는 생략(재시도 유도)
@@ -93,18 +94,12 @@ async function submitUnlockCode() {
   }
 }
 
-const { cooldown: resendCooldown, start: startResendTimer } = useResendCooldown(30)
-
-async function resendUnlockCode() {
-  if (resendCooldown.value > 0) return
-
-  try {
-    await authApi.requestLoginUnlock(email.value)
-    startResendTimer()
-  } catch {
-    // 429(쿨다운) 등 실패 시 별도 안내 없이 재시도 유도 - 기존 정책 유지
-  }
-}
+const { cooldown: codeExpiresIn, start: startCodeExpiryTimer } = useResendCooldown(300)
+const codeExpiryDisplay = computed(() => {
+  const m = Math.floor(codeExpiresIn.value / 60)
+  const s = codeExpiresIn.value % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+})
 
 function backToLogin() {
   step.value = 'login'
@@ -210,6 +205,7 @@ function backToLogin() {
         <section v-else-if="step === 'unlock-code'">
           <p class="text-[18px] font-bold text-ink">이메일로 받은 인증코드를 입력해주세요</p>
           <p class="text-[13px] text-muted-2 mt-1.5">{{ email }}로 6자리 코드를 보냈어요</p>
+          <p v-if="codeExpiresIn > 0" class="text-[12px] text-muted-2 mt-1">인증코드 유효시간 {{ codeExpiryDisplay }}</p>
 
           <div class="mt-6">
             <label class="text-[13px] font-semibold text-ink">인증코드</label>
@@ -219,12 +215,12 @@ function backToLogin() {
             <p v-if="unlockCodeError" class="text-[12px] font-semibold text-red-500 mt-1.5">인증코드가 일치하지 않아요</p>
           </div>
 
-          <button type="button" :disabled="resendCooldown > 0" @click="resendUnlockCode" class="mt-3 text-[12px] font-semibold text-primary disabled:text-muted-2 hover:underline transition-colors">
-            {{ resendCooldown > 0 ? `${resendCooldown}초 후 다시 시도할 수 있어요` : '코드를 받지 못하셨나요? 재발송' }}
+          <button type="button" :disabled="isRequestingUnlock" @click="requestUnlock" class="mt-3 text-[12px] font-semibold text-primary disabled:text-muted-2 hover:underline transition-colors">
+            {{ isRequestingUnlock ? '발송 중...' : '코드를 받지 못하셨나요? 재발송' }}
           </button>
 
-          <button type="button" :disabled="!canSubmitUnlockCode" @click="submitUnlockCode"
-            :class="canSubmitUnlockCode ? 'bg-primary hover:bg-primary/90' : 'bg-navborder'"
+          <button type="button" :disabled="!canSubmitUnlockCode || codeExpiresIn <= 0" @click="submitUnlockCode"
+            :class="canSubmitUnlockCode && codeExpiresIn > 0 ? 'bg-primary hover:bg-primary/90' : 'bg-navborder'"
             class="mt-6 w-full rounded-xl text-white text-[15px] font-bold py-3.5 transition-colors">
             확인
           </button>

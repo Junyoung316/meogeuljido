@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import * as authApi from '@/api/auth'
+import * as userApi from '@/api/user'
 import { useResendCooldown } from '@/composables/useResendCooldown'
 import PasswordToggleButton from '@/components/PasswordToggleButton.vue'
 import { isValidEmail, isValidNickname, isValidPassword } from '@/utils/validators'
@@ -20,7 +21,12 @@ const verifyCodeError = ref(false)
 const emailVerified = ref(false)
 const emailVerifiedToken = ref('')
 
-const { cooldown: resendCooldown, start: startResendTimer } = useResendCooldown(30)
+const { cooldown: codeExpiresIn, start: startCodeExpiryTimer } = useResendCooldown(300)
+const codeExpiryDisplay = computed(() => {
+  const m = Math.floor(codeExpiresIn.value / 60)
+  const s = codeExpiresIn.value % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+})
 
 function onEmailInput() {
   // 이메일을 다시 수정하면 이전 인증 상태를 모두 초기화한다 —
@@ -64,6 +70,7 @@ async function sendVerificationCode(): Promise<boolean> {
     await authApi.requestSignupVerification(email.value)
     codeRequested.value = true
     verifyCode.value = ''
+    startCodeExpiryTimer()
     return true
   } catch (e) {
     if ((e as AxiosError<ApiErrorBody>).response?.data?.code === 'EMAIL_ALREADY_EXISTS') {
@@ -95,17 +102,11 @@ async function confirmVerificationCode() {
   }
 }
 
-async function resendCode() {
-  if (resendCooldown.value > 0) return
-
-  if (await sendVerificationCode()) {
-    startResendTimer()
-  }
-}
-
 // ---- 닉네임 / 비밀번호 ----
 const nickname = ref('')
-const nicknameTouched = ref(false)
+const nicknameChecked = ref(false)
+const nicknameCheckError = ref('')
+const isCheckingNickname = ref(false)
 const password = ref('')
 const passwordConfirm = ref('')
 const showPassword = ref(false)
@@ -114,6 +115,31 @@ const showPasswordConfirm = ref(false)
 const nicknameValid = computed(() => isValidNickname(nickname.value))
 const passwordLengthValid = computed(() => password.value.length === 0 || isValidPassword(password.value))
 const passwordsMatch = computed(() => passwordConfirm.value.length === 0 || password.value === passwordConfirm.value)
+
+function onNicknameInput() {
+  nicknameChecked.value = false
+  nicknameCheckError.value = ''
+}
+
+async function checkNickname() {
+  if (!nickname.value || isCheckingNickname.value) return
+  if(!nicknameValid.value) {
+    nicknameChecked.value = false
+    nicknameCheckError.value = '닉네임은 2~12자여야 해요'
+    return
+  }
+  isCheckingNickname.value = true
+
+  try {
+    const { data } = await userApi.checkNickname(nickname.value.trim())
+    nicknameChecked.value = data.available
+    nicknameCheckError.value = data.available ? '' : '이미 사용 중인 닉네임이에요'
+  } catch {
+    nicknameCheckError.value = '확인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요'
+  } finally {
+    isCheckingNickname.value = false
+  }
+}
 
 // ---- 약관 동의 ----
 const agreements = ref({ terms: false, privacy: false, location: false, marketing: false })
@@ -133,14 +159,13 @@ const submitError = ref('')
 const canSubmit = computed(
   () =>
     emailVerified.value &&
-    nicknameValid.value &&
+    nicknameChecked.value &&
     isValidPassword(password.value) &&
     password.value === passwordConfirm.value &&
     requiredAgreed.value,
 )
 
 async function handleSubmit() {
-  nicknameTouched.value = true
   termsTouched.value = true
   if (!canSubmit.value || isSubmitting.value) return
 
@@ -165,7 +190,7 @@ async function handleSubmit() {
       emailChecked.value = false
     } else if (code === 'DUPLICATE_NICKNAME') {
       submitError.value = '이미 사용중인 닉네임이에요'
-      nicknameTouched.value = true
+      nicknameChecked.value = false
     } else {
       submitError.value = '가입 중 오류가 발생했어요. 잠시 후 다시 시도해주세요'
     }
@@ -210,18 +235,20 @@ async function handleSubmit() {
 
             <div v-if="codeRequested" class="mt-2.5 rounded-xl border border-hairline p-3">
               <p class="text-[12px] text-muted-2">이메일로 받은 6자리 인증코드를 입력해주세요</p>
+              <p v-if="codeExpiresIn > 0" class="text-[11px] text-muted-2 mt-0.5">인증코드 유효시간 {{ codeExpiryDisplay }}</p>
+              <p v-else class="text-[11px] font-semibold text-red-500 mt-0.5">인증코드가 만료됐어요. 재발송해주세요</p>
               <div class="flex gap-2 mt-2">
                 <input :value="verifyCode" @input="onVerifyCodeInput" type="text" inputmode="numeric" maxlength="6"
                   placeholder="6자리 숫자"
                   class="flex-1 min-w-0 rounded-xl border border-hairline px-3.5 py-2.5 text-[14px] tracking-[0.3em] outline-none focus:border-primary" />
-                <button type="button" :disabled="!canConfirmCode" @click="confirmVerificationCode"
-                  :class="canConfirmCode ? 'bg-primary hover:bg-primary/90' : 'bg-navborder'"
+                <button type="button" :disabled="!canConfirmCode || codeExpiresIn <= 0" @click="confirmVerificationCode"
+                  :class="canConfirmCode && codeExpiresIn > 0 ? 'bg-primary hover:bg-primary/90' : 'bg-navborder'"
                   class="shrink-0 rounded-xl text-white text-[13px] font-bold px-3.5 transition-colors">인증확인</button>
               </div>
               <p v-if="verifyCodeError" class="text-[12px] font-semibold text-red-500 mt-1.5">인증코드가 일치하지 않아요</p>
-              <button type="button" :disabled="resendCooldown > 0" @click="resendCode"
+              <button type="button" :disabled="isSendingCode" @click="sendVerificationCode"
                 class="mt-2 text-[12px] font-semibold text-primary disabled:text-muted-2 hover:underline transition-colors">
-                {{ resendCooldown > 0 ? `${resendCooldown}초 후 다시 시도할 수 있어요` : '코드를 받지 못하셨나요? 재발송' }}
+                {{ isSendingCode ? '발송 중...' : '코드를 받지 못하셨나요? 재발송' }}
               </button>
             </div>
 
@@ -234,9 +261,20 @@ async function handleSubmit() {
           <!-- 닉네임 -->
           <div>
             <label class="text-[13px] font-semibold text-ink">닉네임</label>
-            <input v-model="nickname" @blur="nicknameTouched = true" type="text" placeholder="다른 사용자에게 보여질 이름"
-              class="mt-1.5 w-full rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
-            <p v-if="nicknameTouched && !nicknameValid" class="text-[12px] font-semibold text-red-500 mt-1.5">닉네임은 2~12자여야 해요</p>
+            <div class="mt-1.5 flex gap-2">
+              <input v-model="nickname" @input="onNicknameInput" type="text" placeholder="다른 사용자에게 보여질 이름"
+                class="flex-1 min-w-0 rounded-xl border border-hairline px-3.5 py-3 text-[14px] outline-none focus:border-primary" />
+              <button type="button" @click="checkNickname" :disabled="nicknameChecked || isCheckingNickname"
+                class="shrink-0 rounded-xl border border-navborder text-ink text-[13px] font-bold px-3.5">
+                {{ isCheckingNickname ? '확인 중...' : '중복확인' }}
+              </button>
+            </div>
+            <p v-if="nicknameChecked" class="text-[12px] font-semibold text-primary mt-1.5">
+              사용 가능한 닉네임이에요
+            </p>
+            <p v-else-if="nicknameCheckError" class="text-[12px] font-semibold text-red-500 mt-1.5">
+              {{ nicknameCheckError }}
+            </p>
           </div>
 
           <!-- 비밀번호 -->
